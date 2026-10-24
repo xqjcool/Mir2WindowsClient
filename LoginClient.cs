@@ -11,6 +11,10 @@ public sealed record CharacterInfo(string Name, int Job, int Hair, int Level, in
     public string JobName => Job switch { 0 => "战士", 1 => "法师", 2 => "道士", _ => "未知职业" };
 }
 
+internal sealed record AccountRegistration(string Account, string Password, string DisplayName, string IdentityNumber,
+    string Phone, string FirstQuestion, string FirstAnswer, string Email, string SecondQuestion,
+    string SecondAnswer, string Birthday, string MobilePhone);
+
 internal sealed record ServerPacket(uint Actor, ushort Id, ushort X, ushort Y, ushort Series, byte[] Body, IReadOnlyList<byte[]> BodyParts);
 
 /// <summary>Classic Mir2 EDCode framing and the LoginGate -> SelGate -> GameGate login flow.</summary>
@@ -48,6 +52,30 @@ internal sealed class LoginClient : IDisposable
             var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MirWindowsClient");
             Directory.CreateDirectory(directory);
             lock (DiagnosticLock) File.AppendAllText(Path.Combine(directory, "protocol.log"), $"{DateTimeOffset.Now:O} {message}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    public static void RecordClientException(string stage, Exception exception)
+    {
+        try
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MirWindowsClient");
+            Directory.CreateDirectory(directory);
+            lock (DiagnosticLock)
+                File.AppendAllText(Path.Combine(directory, "client-exceptions.log"),
+                    $"{DateTimeOffset.Now:O} stage={stage}{Environment.NewLine}{exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    public static void RecordWorldAction(string message)
+    {
+        try
+        {
+            var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MirWindowsClient");
+            Directory.CreateDirectory(directory);
+            lock (DiagnosticLock) File.AppendAllText(Path.Combine(directory, "protocol.log"), $"{DateTimeOffset.Now:O} world {message}{Environment.NewLine}");
         }
         catch { }
     }
@@ -108,6 +136,132 @@ internal sealed class LoginClient : IDisposable
         if (entered.Id != 50) throw new InvalidOperationException("游戏服务器拒绝了角色登录。");
     }
 
+    public async Task<IReadOnlyList<CharacterInfo>> CreateCharacterAsync(string name, int hair, int job, int sex)
+    {
+        if (_stream == null) throw new IOException("角色服务器连接已关闭，请重新登录。");
+        if (string.IsNullOrWhiteSpace(name) || name.Contains('/') || name.Contains('\0'))
+            throw new InvalidOperationException("请输入有效的角色名。");
+        if (hair is < 0 or > 255 || job is < 0 or > 2 || sex is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(job));
+
+        await SendCommandAsync(101, body: $"{_account}/{name.Trim()}/{hair}/{job}/{sex}");
+        var created = await WaitForAsync("角色创建", 521, 522);
+        if (created.Id == 522)
+        {
+            var reason = created.Actor switch
+            {
+                0 => "角色名包含非法字符。",
+                2 => "这个角色名已经被使用。",
+                3 => "一个账号最多创建两个角色。",
+                4 => "服务器创建角色失败。",
+                _ => "服务器拒绝创建角色。"
+            };
+            throw new InvalidOperationException(reason);
+        }
+        return await QueryCharactersAsync();
+    }
+
+    public async Task<IReadOnlyList<CharacterInfo>> DeleteCharacterAsync(string name)
+    {
+        if (_stream == null) throw new IOException("角色服务器连接已关闭，请重新登录。");
+        if (string.IsNullOrWhiteSpace(name) || name.Contains('/') || name.Contains('\0'))
+            throw new InvalidOperationException("角色名无效。");
+
+        await SendCommandAsync(102, body: name);
+        var deleted = await WaitForAsync("角色删除", 523, 524);
+        if (deleted.Id == 524) throw new InvalidOperationException("服务器拒绝删除角色；角色可能已达到删除等级限制。");
+        return await QueryCharactersAsync();
+    }
+
+    public async Task ChangePasswordAsync(string host, string account, string currentPassword, string newPassword)
+    {
+        if (new[] { account, currentPassword, newPassword }.Any(value => string.IsNullOrWhiteSpace(value) || value.Contains('\t') || value.Contains('\0')))
+            throw new InvalidOperationException("请完整填写账号和密码。");
+        await ConnectGateAsync(host, 7000);
+        try
+        {
+            await SendCommandAsync(2003, body: $"{account}\t{currentPassword}\t{newPassword}");
+            var result = await WaitForAsync("修改账号密码", 506, 507);
+            if (result.Id == 507)
+            {
+                var error = unchecked((int)result.Actor) switch
+                {
+                    -1 => "原密码不正确。",
+                    -2 => "新密码两次输入不一致。",
+                    _ => "服务器未能修改密码。"
+                };
+                throw new InvalidOperationException(error);
+            }
+        }
+        finally { await CloseGateAsync(); }
+    }
+
+    public async Task RegisterAccountAsync(string host, AccountRegistration registration)
+    {
+        if (new[] { registration.Account, registration.Password, registration.DisplayName, registration.IdentityNumber,
+                registration.FirstQuestion, registration.FirstAnswer, registration.SecondQuestion, registration.SecondAnswer,
+                registration.Birthday }.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidOperationException("请填写账号、密码、姓名、身份证号、生日和两组密保问题及答案。");
+        if (registration.Password.Length < 3 || registration.Password != registration.Password.Trim())
+            throw new InvalidOperationException("密码至少需要 3 个字符，且不能包含首尾空格。");
+
+        var userEntry = PackLegacyFields(
+            [registration.Account.ToLowerInvariant(), registration.Password, registration.DisplayName, registration.IdentityNumber,
+             registration.Phone, registration.FirstQuestion, registration.FirstAnswer, registration.Email],
+            [10, 10, 20, 14, 14, 20, 12, 40]);
+        var userEntryAdd = PackLegacyFields(
+            [registration.SecondQuestion, registration.SecondAnswer, registration.Birthday, registration.MobilePhone, "", ""],
+            [20, 12, 10, 13, 20, 20]);
+
+        await ConnectGateAsync(host, 7000);
+        try
+        {
+            var message = new byte[12];
+            BinaryPrimitives.WriteUInt16LittleEndian(message.AsSpan(4, 2), 2002);
+            var packet = Encode(message)
+                .Concat(Encode(userEntry))
+                .Concat(Encode(userEntryAdd))
+                .ToArray();
+            Diagnostic("send command=2002");
+            await SendRawAsync(packet);
+            var result = await WaitForAsync("注册账号", 504, 505);
+            if (result.Id == 505)
+            {
+                var error = unchecked((int)result.Actor) switch
+                {
+                    0 => "账号名称已被使用。",
+                    99 => "服务器当前关闭了账号注册。",
+                    _ => "服务器拒绝注册，请检查账号规则及资料。"
+                };
+                throw new InvalidOperationException(error);
+            }
+        }
+        finally { await CloseGateAsync(); }
+    }
+
+    private byte[] PackLegacyFields(string[] values, int[] capacities)
+    {
+        using var buffer = new MemoryStream();
+        for (var i = 0; i < values.Length; i++)
+        {
+            var bytes = LegacyEncoding.GetBytes(values[i]);
+            if (bytes.Length > capacities[i])
+                throw new InvalidOperationException($"第 {i + 1} 个注册字段超出原版长度限制（{capacities[i]} 字节）。");
+            buffer.WriteByte(checked((byte)bytes.Length));
+            buffer.Write(bytes);
+            if (bytes.Length < capacities[i]) buffer.Write(new byte[capacities[i] - bytes.Length]);
+        }
+        return buffer.ToArray();
+    }
+
+    private async Task<IReadOnlyList<CharacterInfo>> QueryCharactersAsync()
+    {
+        await SendCommandAsync(100, body: $"{_account}/{_ticket}");
+        var result = await WaitForAsync("刷新角色列表", 520, 527);
+        if (result.Id != 520) throw new InvalidOperationException("服务器刷新角色列表失败。");
+        return ParseCharacters(result.Actor, result.Body);
+    }
+
     public async Task StartWorldAsync()
     {
         await SendCommandAsync(81);
@@ -128,6 +282,8 @@ internal sealed class LoginClient : IDisposable
 
     public Task QueryUserStateAsync(uint actor, ushort x, ushort y) => SendCommandAsync(82, actor: actor, x: x, y: y);
     public Task QueryBagAsync() => SendCommandAsync(81);
+    public Task TalkToNpcAsync(uint npcActor) => SendCommandAsync(1010, actor: npcActor);
+    public Task SelectNpcOptionAsync(uint npcActor, string command) => SendCommandAsync(1011, actor: npcActor, body: command);
     public Task ChangeEquipmentAsync(int itemId, int slot, string itemName) => SendCommandAsync(1003, actor: unchecked((uint)itemId), x: checked((ushort)slot), body: itemName);
     public Task UseItemAsync(int itemId, string itemName) => SendCommandAsync(1006, actor: unchecked((uint)itemId), body: itemName);
     public Task SayAsync(string text) => SendCommandAsync(3030, body: text);
@@ -141,10 +297,20 @@ internal sealed class LoginClient : IDisposable
         return SendCommandAsync(3011, actor: actor, y: (ushort)direction);
     }
 
+    public Task RunAsync(int x, int y, int direction)
+    {
+        if (x is < 0 or > ushort.MaxValue || y is < 0 or > ushort.MaxValue || direction is < 0 or > 7)
+            throw new ArgumentOutOfRangeException(nameof(x));
+        var actor = (uint)x | ((uint)y << 16);
+        return SendCommandAsync(3013, actor: actor, y: (ushort)direction);
+    }
+
     public Task PickupAsync(int x, int y) => SendCommandAsync(1001, x: checked((ushort)x), y: checked((ushort)y));
 
+    // CM_HIT uses X/Y for the player's current tile and Series for facing.
+    // Target coordinates are used only to derive the direction on the client.
     public Task AttackAsync(int x, int y, int direction) =>
-        SendCommandAsync(3014, actor: (uint)x | ((uint)y << 16), y: checked((ushort)direction));
+        SendCommandAsync(3014, x: checked((ushort)x), y: checked((ushort)y), series: checked((ushort)direction));
 
     private async Task ConnectGateAsync(string host, ushort port)
     {
@@ -265,7 +431,7 @@ internal sealed class LoginClient : IDisposable
 
     private Task SendCommandAsync(ushort id, uint actor = 0, ushort x = 0, ushort y = 0, ushort series = 0, string body = "")
     {
-        Diagnostic($"send command={id}");
+        Diagnostic($"send command={id} actor={actor} x={x} y={y} series={series} bodyBytes={LegacyEncoding.GetByteCount(body)}");
         var header = new byte[12];
         BinaryPrimitives.WriteUInt32LittleEndian(header.AsSpan(0, 4), actor);
         BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(4, 2), id);
@@ -425,7 +591,14 @@ internal sealed class LoginClient : IDisposable
 
     public void Dispose()
     {
-        try { CloseGateAsync().GetAwaiter().GetResult(); } catch { }
-        _writeLock.Dispose();
+        // Never synchronously wait for the socket reader from the WinForms
+        // close event. Closing the window must not freeze while the server is
+        // silent or the TCP read is being cancelled.
+        _packets.Writer.TryComplete();
+        _connectionCancellation?.Cancel();
+        _tcp?.Dispose();
+        var shutdown = CloseGateAsync();
+        _ = shutdown.ContinueWith(_ => _writeLock.Dispose(), CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 }

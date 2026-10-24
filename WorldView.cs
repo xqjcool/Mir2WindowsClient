@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using System.Buffers.Binary;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace MirWindowsClient;
 
@@ -24,7 +26,7 @@ internal sealed class WorldView : Control
     }
     private sealed class GroundData { public string File { get; set; } = ""; public int X { get; set; } public int Y { get; set; } public int Width { get; set; } public int Height { get; set; } }
     private sealed class TextureData { public string File { get; set; } = ""; public int Width { get; set; } public int Height { get; set; } }
-    private sealed class ObjectData { public string Texture { get; set; } = ""; public int X { get; set; } public int Y { get; set; } public int FrameCount { get; set; } = 1; public double FrameDuration { get; set; } = 0.1; }
+    private sealed class ObjectData { public string Texture { get; set; } = ""; public int X { get; set; } public int Y { get; set; } public int FrameCount { get; set; } = 1; public double FrameDuration { get; set; } = 0.1; public string? Blend { get; set; } public int? OffsetX { get; set; } public int? OffsetY { get; set; } }
     private sealed class FrameData { public string File { get; set; } = ""; public int Width { get; set; } public int Height { get; set; } public int OffsetX { get; set; } public int OffsetY { get; set; } }
     private sealed class Actor
     {
@@ -34,6 +36,10 @@ internal sealed class WorldView : Control
     private sealed record GroundDrop(uint Id, int X, int Y, string Name, ushort Image);
 
     private readonly string _assetRoot;
+    private Bitmap? _sceneSurface;
+    private Bitmap? _lightSurface;
+    private Image? _hudBoardImage;
+    public Action<Graphics>? HudBoardPaint { get; set; }
     private readonly Dictionary<string, Bitmap> _images = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<uint, Actor> _actors = [];
     private readonly Dictionary<uint, GroundDrop> _drops = [];
@@ -45,9 +51,15 @@ internal sealed class WorldView : Control
     private List<(int X, int Y)> _route = [];
     private int _routeIndex;
     private uint? _targetActor;
+    private uint? _pendingNpcId;
     private DateTime _nextWalk = DateTime.MinValue;
     private DateTime _nextAttack = DateTime.MinValue;
-    private bool _stepPending;
+    private bool _routeRunning;
+    private int _lastRunDirection;
+    private MouseButtons _heldMoveButton;
+    private Point _heldMovePoint;
+    private DateTime _nextHeldMove = DateTime.MinValue;
+    private bool _mouseDownOnMap;
     private readonly List<ItemView> _bagItems = [];
     private readonly Dictionary<int, ItemView> _equipment = [];
     private readonly List<string> _skills = [];
@@ -89,20 +101,34 @@ internal sealed class WorldView : Control
         catch { }
         DoubleBuffered = true;
         BackColor = Color.FromArgb(17, 24, 19);
-        _timer.Tick += (_, _) => { AdvanceRoute(); Invalidate(); };
+        _timer.Tick += (_, _) => { AdvanceRoute(); ContinueHeldMovement(); UpdateCamera(); Invalidate(); };
         _timer.Start();
         LoadMap("0");
     }
 
     public event Action<int, int, int>? WalkRequested;
+    public event Action<int, int, int>? RunRequested;
     public event Action<int, int, int>? AttackRequested;
     public event Action<int, int>? PickupRequested;
     public event Action<string>? StatusChanged;
     public event Action? CharacterDataChanged;
+    public event Action<string>? WorldActionDiagnostic;
+    public event Action<string>? WorldChatReceived;
+    public event Action<uint>? NpcTalkRequested;
+    public event Action<uint, string>? NpcDialogChanged;
+    public event Action? NpcDialogClosed;
+
+    public void SetHudBoard(Image? image) { _hudBoardImage = image; Invalidate(); }
 
     public void PickupAtPlayer()
     {
-        if (_actors.TryGetValue(_playerId, out var player)) PickupRequested?.Invoke(player.X + (_map?.OriginX ?? 0), player.Y + (_map?.OriginY ?? 0));
+        if (_actors.TryGetValue(_playerId, out var player))
+        {
+            var x = player.X + (_map?.OriginX ?? 0); var y = player.Y + (_map?.OriginY ?? 0);
+            WorldActionDiagnostic?.Invoke($"pickup-button player={_playerId} at=({x},{y})");
+            SetStatus("正在请求拾取角色周围物品");
+            PickupRequested?.Invoke(x, y);
+        }
         else SetStatus("尚未收到角色位置，暂时不能拾取");
     }
 
@@ -161,12 +187,24 @@ internal sealed class WorldView : Control
                     _skills.Add(Encoding.GetEncoding("GB18030").GetString(record, 11, record[10]));
             CharacterDataChanged?.Invoke(); return;
         }
-        if (p.Id == 100)
+        if (p.Id is 100 or 101 or 102 or 103 or 104 or 1501)
         {
             var message = Encoding.GetEncoding("GB18030").GetString(p.Body).Trim('\0', ' ', '\r', '\n');
-            if (!string.IsNullOrWhiteSpace(message)) SetStatus(message);
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                WorldChatReceived?.Invoke(message);
+                if (p.Id == 100) SetStatus(message);
+            }
             return;
         }
+        if (p.Id == 643)
+        {
+            var text = Encoding.GetEncoding("GB18030").GetString(p.Body).Trim('\0', ' ', '\r', '\n')
+                .Split('/', 2, StringSplitOptions.None).Last().Replace("\\", "\r\n");
+            NpcDialogChanged?.Invoke(p.Actor, text);
+            return;
+        }
+        if (p.Id == 644) { NpcDialogClosed?.Invoke(); return; }
         if (p.Id == 610)
         {
             var x = (int)p.X - (_map?.OriginX ?? 0); var y = (int)p.Y - (_map?.OriginY ?? 0);
@@ -209,21 +247,45 @@ internal sealed class WorldView : Control
         }
         actor.FromX = actor.X; actor.FromY = actor.Y; actor.X = worldX; actor.Y = worldY;
         actor.Direction = p.Series & 7; actor.MovedAt = Environment.TickCount64 / 1000.0;
-        if (p.Id is 11 or 9 or 13) { actor.Action = "walk"; actor.ActionUntil = actor.MovedAt + 0.54; }
+        if (p.Id == 11) { actor.Action = "walk"; actor.ActionUntil = actor.MovedAt + 0.54; }
+        else if (p.Id == 13) { actor.Action = "run"; actor.ActionUntil = actor.MovedAt + 0.38; }
+        else if (p.Id == 9) { actor.Action = "walk"; actor.ActionUntil = actor.MovedAt + 0.54; }
         else if (p.Id is 10 or 27 or 50) { actor.Action = "stand"; actor.ActionUntil = 0; actor.Dead = false; }
         actor.IsPlayer = p.Actor == _playerId;
-        if (actor.IsPlayer && p.Id is 9 or 11 or 13 or 28 or 50) _stepPending = false;
+        if (actor.IsPlayer && p.Id is 9 or 11 or 13 or 28 or 50) _route.Clear();
+        if (actor.IsPlayer && p.Id is 9 or 11 or 13) _routeRunning = false;
+        if (actor.IsPlayer && p.Id is 9 or 11 or 13)
+        {
+            WorldActionDiagnostic?.Invoke($"server-move-ack packet={p.Id} actor={p.Actor} at=({worldX + (_map?.OriginX ?? 0)},{worldY + (_map?.OriginY ?? 0)})");
+            SetStatus("服务器已确认移动");
+        }
         if (p.Body.Length >= 8)
         {
             actor.Race = p.Body[0]; actor.Appearance = p.Body[2] | (p.Body[3] << 8);
-            actor.Name = actor.IsPlayer ? "我" : actor.Race switch { 11 when actor.Appearance == 160 => "鸡", 11 when actor.Appearance == 161 => "鹿", 18 when actor.Appearance == 27 => "稻草人", 17 when actor.Appearance == 25 => "多钩猫", _ => "角色" };
+            actor.Name = actor.IsPlayer ? "我" : actor.Race == 50 ? "NPC" : actor.Race switch { 11 when actor.Appearance == 160 => "鸡", 11 when actor.Appearance == 161 => "鹿", 18 when actor.Appearance == 27 => "稻草人", 17 when actor.Appearance == 25 => "多钩猫", _ => "角色" };
             if (p.Body.Length > 8 && !actor.IsPlayer)
             {
                 var name = Encoding.GetEncoding("GB18030").GetString(p.Body, 8, p.Body.Length - 8).Split('/')[0].Trim('\0', '*', ' ');
                 if (!string.IsNullOrWhiteSpace(name) && name.Length < 32) actor.Name = name;
             }
         }
-        if (p.Id == 28) { actor.X = worldX; actor.Y = worldY; _route.Clear(); _routeIndex = 0; SetStatus("服务器拒绝了这一步移动，位置已校正"); }
+        if (p.Id == 28)
+        {
+            actor.X = worldX; actor.Y = worldY; _route.Clear(); _routeIndex = 0;
+            if (actor.IsPlayer && _routeRunning)
+            {
+                _routeRunning = false;
+                var (dx, dy) = _lastRunDirection switch { 0 => (0,-1), 1 => (1,-1), 2 => (1,0), 3 => (1,1), 4 => (0,1), 5 => (-1,1), 6 => (-1,0), 7 => (-1,-1), _ => (0,0) };
+                if (CanWalk(worldX + dx, worldY + dy))
+                {
+                    _route = [(worldX + dx, worldY + dy)];
+                    SetStatus("\u524d\u65b9\u53d7\u963b\uff0c\u6539\u4e3a\u6b65\u884c");
+                    AdvanceRoute();
+                }
+                else SetStatus("\u8dd1\u6b65\u53d7\u963b\uff0c\u4f4d\u7f6e\u5df2\u6821\u6b63");
+            }
+            else SetStatus("\u670d\u52a1\u5668\u62d2\u7edd\u4e86\u79fb\u52a8\uff0c\u4f4d\u7f6e\u5df2\u6821\u6b63");
+        }
         if (actor.IsPlayer) { _cameraX = actor.X * 48 + 24; _cameraY = actor.Y * 32 + 16; }
         Invalidate();
     }
@@ -260,9 +322,10 @@ internal sealed class WorldView : Control
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
-        e.Graphics.Clear(BackColor);
-        if (_map == null) { DrawLabel(e.Graphics, _status, 18, 18, Color.OrangeRed); return; }
-        var g = e.Graphics; g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+        if (_map == null) { e.Graphics.Clear(BackColor); DrawLabel(e.Graphics, _status, 18, 18, Color.OrangeRed); return; }
+        EnsureRenderSurfaces();
+        using var g = Graphics.FromImage(_sceneSurface!);
+        g.Clear(BackColor); g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
         var left = _cameraX - Width / 2; var top = _cameraY - Height / 2;
         var view = new Rectangle(0, 0, Width, Height);
         foreach (var chunk in _map.Ground)
@@ -272,16 +335,21 @@ internal sealed class WorldView : Control
             var image = ImageFor(chunk.File);
             if (image != null) g.DrawImage(image, dest);
         }
-        foreach (var obj in _map.Objects)
+        var lights = new List<(Bitmap Image, Rectangle Source, Rectangle Destination)>();
+        foreach (var obj in _map.Objects.OrderBy(o => o.Y).ThenBy(o => o.X))
         {
             if (!_map.Textures.TryGetValue(obj.Texture, out var texture)) continue;
             var frameCount = Math.Max(1, obj.FrameCount); var h = texture.Height / frameCount;
-            var x = obj.X * 48; var y = (obj.Y + 1) * 32 - h;
+            var isLight = string.Equals(obj.Blend, "add", StringComparison.OrdinalIgnoreCase);
+            var x = obj.X * 48 + (isLight ? obj.OffsetX ?? 0 : 0);
+            var y = isLight ? obj.Y * 32 + (obj.OffsetY ?? 0) : (obj.Y + 1) * 32 - h;
             var dest = new Rectangle(x - left, y - top, texture.Width, h);
             if (!dest.IntersectsWith(view)) continue;
             var image = ImageFor(texture.File); if (image == null) continue;
             var frame = frameCount > 1 ? (int)(Environment.TickCount64 / Math.Max(50, obj.FrameDuration * 1000)) % frameCount : 0;
-            g.DrawImage(image, dest, new Rectangle(0, frame * h, texture.Width, h), GraphicsUnit.Pixel);
+            var source = new Rectangle(0, frame * h, texture.Width, h);
+            if (isLight) lights.Add((image, source, dest));
+            else g.DrawImage(image, dest, source, GraphicsUnit.Pixel);
         }
         foreach (var drop in _drops.Values)
         {
@@ -295,23 +363,44 @@ internal sealed class WorldView : Control
             g.DrawString(drop.Name, font, Brushes.White, x - size.Width / 2, y + 7);
         }
         foreach (var actor in _actors.Values.OrderBy(a => a.Y)) DrawActor(g, actor, left, top);
+        g.Flush();
+        g.Dispose();
+        if (lights.Count > 0) ApplyAdditiveLights(lights);
+        using var hudGraphics = Graphics.FromImage(_sceneSurface!);
+        // Paint the HUD in the same surface as the map. WinForms' transparent
+        // PictureBox only reveals its parent background, which created a black
+        // strip wherever the original HUD bitmap is transparent.
+        var hudX = Math.Max(0, (Width - 800) / 2);
+        var hudY = Math.Max(0, Height - 600) + 349;
+        if (_hudBoardImage != null) hudGraphics.DrawImage(_hudBoardImage, new Rectangle(hudX, hudY, 800, 251));
+        var state = hudGraphics.Save();
+        hudGraphics.TranslateTransform(hudX, hudY);
+        HudBoardPaint?.Invoke(hudGraphics);
+        hudGraphics.Restore(state);
+        e.Graphics.DrawImageUnscaled(_sceneSurface!, 0, 0);
         // The classic client has no permanent debug/status banner over the map.
         // Status messages are routed to the original chat panel by the host form.
     }
 
     private void DrawActor(Graphics g, Actor actor, int left, int top)
     {
+        var now = Environment.TickCount64 / 1000.0;
+        var duration = actor.ActionUntil - actor.MovedAt;
+        var progress = actor.Action is "walk" or "run" && duration > 0
+            ? Math.Clamp((now - actor.MovedAt) / duration, 0, 1) : 1;
+        var drawX = actor.FromX + (actor.X - actor.FromX) * progress;
+        var drawY = actor.FromY + (actor.Y - actor.FromY) * progress;
         var frame = CurrentFrame(actor);
         if (frame != null)
         {
-            var x = actor.X * 48 + frame.OffsetX; var y = actor.Y * 32 + 16 - frame.OffsetY - frame.Height;
+            var x = (int)Math.Round(drawX * 48 + frame.OffsetX); var y = (int)Math.Round(drawY * 32 + 16 - frame.OffsetY - frame.Height);
             var dest = new Rectangle(x - left, y - top, frame.Width, frame.Height);
             if (dest.IntersectsWith(new Rectangle(0, 0, Width, Height)))
             {
                 var image = ImageFor(frame.File); if (image != null) g.DrawImage(image, dest);
             }
         }
-        var centerX = actor.X * 48 + 24 - left; var footY = actor.Y * 32 + 30 - top;
+        var centerX = (int)Math.Round(drawX * 48 + 24) - left; var footY = (int)Math.Round(drawY * 32 + 30) - top;
         using var brush = new SolidBrush(actor.IsPlayer ? Color.Gold : Color.White);
         using var font = new Font("Microsoft YaHei UI", 9, FontStyle.Bold);
         var size = g.MeasureString(actor.Name, font);
@@ -354,15 +443,69 @@ internal sealed class WorldView : Control
     protected override void OnMouseClick(MouseEventArgs e)
     {
         base.OnMouseClick(e);
+        if (_mouseDownOnMap) { _mouseDownOnMap = false; return; }
+        HandleMapClick(e);
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button is MouseButtons.Left or MouseButtons.Right && !IsHudPoint(e.Location))
+        {
+            _heldMoveButton = e.Button;
+            _heldMovePoint = e.Location;
+            _mouseDownOnMap = true;
+            Focus();
+            HandleMapClick(e);
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (_heldMoveButton != MouseButtons.None) _heldMovePoint = e.Location;
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (e.Button == _heldMoveButton) _heldMoveButton = MouseButtons.None;
+    }
+
+    private bool IsHudPoint(Point point)
+    {
+        const int classicWidth = 800;
+        const int hudHeight = 251;
+        return new Rectangle(Math.Max(0, (Width - classicWidth) / 2), Math.Max(0, Height - hudHeight), classicWidth, hudHeight).Contains(point);
+    }
+
+    private void HandleMapClick(MouseEventArgs e)
+    {
         if (_map == null) return;
-        if (e.Y >= 349) return; // 800x600 classic HUD begins at y=349.
+        // The original HUD remains an 800x251 panel centered at the bottom
+        // when the window is maximized. Do not treat the old y=349 screen
+        // coordinate as HUD everywhere; that made most of a maximized map
+        // ignore left clicks.
+        if (IsHudPoint(e.Location)) return;
         if (e.Button is not (MouseButtons.Left or MouseButtons.Right)) return;
         var x = (e.X + _cameraX - Width / 2) / 48; var y = (e.Y + _cameraY - Height / 2) / 32;
         x = Math.Clamp(x, 0, _map.Width - 1); y = Math.Clamp(y, 0, _map.Height - 1);
-        if (e.Button == MouseButtons.Right) { PickupRequested?.Invoke(x + _map.OriginX, y + _map.OriginY); return; }
+        if (e.Button == MouseButtons.Right)
+        {
+            _targetActor = null;
+            BeginGroundMove((x, y), run: true);
+            return;
+        }
+        if ((ModifierKeys & Keys.Shift) != 0 && _actors.TryGetValue(_playerId, out var self))
+        {
+            var direction = Direction(self.X, self.Y, x, y, self.Direction);
+            AttackAt(self.X + _map.OriginX, self.Y + _map.OriginY, direction, "Shift+左键原地攻击");
+            return;
+        }
         var start = _actors.TryGetValue(_playerId, out var player) ? (X: player.X, Y: player.Y) : (X: x, Y: y);
+        WorldActionDiagnostic?.Invoke($"left-click screen=({e.X},{e.Y}) map=({x + _map.OriginX},{y + _map.OriginY}) player={_playerId} known={_actors.ContainsKey(_playerId)} start=({start.X},{start.Y})");
         var cameraLeft = _cameraX - Width / 2; var cameraTop = _cameraY - Height / 2;
-        var clickedActor = _actors.Values.Where(a => a.Id != _playerId && !a.Dead && a.Race is >= 10 and < 50)
+        var clickedActor = _actors.Values.Where(a => a.Id != _playerId && !a.Dead && (a.IsPlayer || a.Race is >= 10 and <= 50))
             .OrderByDescending(a => a.Y)
             .FirstOrDefault(a =>
             {
@@ -372,10 +515,28 @@ internal sealed class WorldView : Control
                     : new Rectangle(a.X * 48 + frame.OffsetX - cameraLeft, a.Y * 32 + 16 - frame.OffsetY - frame.Height - cameraTop, frame.Width, frame.Height);
                 return bounds.Contains(e.Location);
             })
-            ?? _actors.Values.Where(a => a.Id != _playerId && !a.Dead && a.Race is >= 10 and < 50 && Math.Abs(a.X - x) <= 1 && y >= a.Y - 1 && y <= a.Y + 1)
+            ?? _actors.Values.Where(a => a.Id != _playerId && !a.Dead && (a.IsPlayer || a.Race is >= 10 and <= 50) && Math.Abs(a.X - x) <= 1 && y >= a.Y - 1 && y <= a.Y + 1)
                 .OrderBy(a => Math.Abs(a.X - x) + Math.Abs(a.Y - y)).FirstOrDefault();
-        if (clickedActor != null && clickedActor.Race is >= 10 and < 50)
+        if (clickedActor is { Race: 50 })
         {
+            _targetActor = null;
+            _pendingNpcId = clickedActor.Id;
+            if (Math.Max(Math.Abs(clickedActor.X - start.X), Math.Abs(clickedActor.Y - start.Y)) <= 3)
+            {
+                _pendingNpcId = null;
+                NpcTalkRequested?.Invoke(clickedActor.Id);
+                return;
+            }
+            var approach = Enumerable.Range(0, 8).Select(i => (X: clickedActor.X + new[] { -1, 0, 1, -1, 1, -1, 0, 1 }[i], Y: clickedActor.Y + new[] { -1, -1, -1, 0, 0, 1, 1, 1 }[i]))
+                .Where(c => CanWalk(c.X, c.Y)).Select(c => (Cell: c, Path: FindPath(start, c))).Where(c => c.Path.Count > 0).OrderBy(c => c.Path.Count).FirstOrDefault();
+            _route = approach.Path ?? []; _routeIndex = 0;
+            if (_route.Count == 0) { _pendingNpcId = null; SetStatus($"无法接近 {clickedActor.Name}"); return; }
+            SetStatus($"正在接近 {clickedActor.Name}"); AdvanceRoute();
+            return;
+        }
+        if (clickedActor != null && (clickedActor.IsPlayer || clickedActor.Race is >= 10 and < 50))
+        {
+            _routeRunning = false;
             _targetActor = clickedActor.Id;
             if (Math.Max(Math.Abs(clickedActor.X - start.X), Math.Abs(clickedActor.Y - start.Y)) <= 1) Attack(clickedActor);
             else
@@ -384,14 +545,46 @@ internal sealed class WorldView : Control
                     .Where(c => CanWalk(c.X, c.Y)).Select(c => (Cell: c, Path: FindPath(start, c))).Where(c => c.Path.Count > 0).OrderBy(c => c.Path.Count).FirstOrDefault();
                 _route = approach.Path ?? []; _routeIndex = 0;
                 if (_route.Count == 0) { _targetActor = null; SetStatus("无法接近这个目标"); return; }
-                _stepPending = false; SetStatus($"正在接近 {clickedActor.Name}"); AdvanceRoute();
+                SetStatus($"正在接近 {clickedActor.Name}"); AdvanceRoute();
             }
             return;
         }
         _targetActor = null;
-        _route = FindPath(start, (x, y)); _routeIndex = 0;
-        if (_route.Count == 0) { SetStatus("目标不可达，或已在该位置"); return; }
-        SetStatus("正在向点击位置移动"); AdvanceRoute();
+        _pendingNpcId = null;
+        BeginGroundMove((x, y), run: false);
+    }
+
+    private void BeginGroundMove((int X, int Y) destination, bool run)
+    {
+        if (!_actors.TryGetValue(_playerId, out var player) || _map == null)
+        { SetStatus("等待服务器同步角色位置"); return; }
+        var path = FindPath((player.X, player.Y), destination);
+        if (path.Count == 0) { SetStatus("目标不可达，或已在该位置"); return; }
+        _routeRunning = false;
+        _pendingNpcId = null;
+        if (run && path.Count >= 2)
+        {
+            var first = path[0]; var second = path[1];
+            if (second.X - first.X == first.X - player.X && second.Y - first.Y == first.Y - player.Y)
+            { _route = [second]; _routeRunning = true; }
+            else _route = [first];
+        }
+        else _route = [path[0]];
+        _routeIndex = 0;
+        SetStatus(run ? "正在跑向点击位置" : "正在走向点击位置");
+        AdvanceRoute();
+    }
+
+    private void ContinueHeldMovement()
+    {
+        if (_heldMoveButton == MouseButtons.None || DateTime.UtcNow < _nextHeldMove || _routeIndex < _route.Count || _targetActor != null || _pendingNpcId != null) return;
+        if (IsHudPoint(_heldMovePoint) || _map == null || !_actors.TryGetValue(_playerId, out var player)) return;
+        var x = (_heldMovePoint.X + _cameraX - Width / 2) / 48;
+        var y = (_heldMovePoint.Y + _cameraY - Height / 2) / 32;
+        x = Math.Clamp(x, 0, _map.Width - 1); y = Math.Clamp(y, 0, _map.Height - 1);
+        if (x == player.X && y == player.Y) return;
+        _nextHeldMove = DateTime.UtcNow.AddMilliseconds(180);
+        BeginGroundMove((x, y), run: _heldMoveButton == MouseButtons.Right);
     }
 
     private List<(int X, int Y)> FindPath((int X, int Y) start, (int X, int Y) goal)
@@ -417,25 +610,114 @@ internal sealed class WorldView : Control
         var path = new List<(int X,int Y)>(); for(var at=target;at!=source;at=parent[at])path.Add((at%_map.Width,at/_map.Width));path.Reverse();return path;
     }
     private bool CanWalk(int x,int y) => _map != null && x>=0 && y>=0 && x<_map.Width && y<_map.Height && _map.Walkable[y*_map.Width+x];
+    private void UpdateCamera()
+    {
+        if (!_actors.TryGetValue(_playerId, out var player)) return;
+        var now = Environment.TickCount64 / 1000.0;
+        var duration = player.ActionUntil - player.MovedAt;
+        var progress = player.Action is "walk" or "run" && duration > 0
+            ? Math.Clamp((now - player.MovedAt) / duration, 0, 1) : 1;
+        _cameraX = (int)Math.Round((player.FromX + (player.X - player.FromX) * progress) * 48 + 24);
+        _cameraY = (int)Math.Round((player.FromY + (player.Y - player.FromY) * progress) * 32 + 16);
+    }
+
+    private void EnsureRenderSurfaces()
+    {
+        if (_sceneSurface?.Width == Width && _sceneSurface.Height == Height && _lightSurface?.Width == Width && _lightSurface.Height == Height) return;
+        _sceneSurface?.Dispose(); _lightSurface?.Dispose();
+        var width = Math.Max(1, Width); var height = Math.Max(1, Height);
+        _sceneSurface = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+        _lightSurface = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+    }
+
+    private void ApplyAdditiveLights(List<(Bitmap Image, Rectangle Source, Rectangle Destination)> lights)
+    {
+        using (var g = Graphics.FromImage(_lightSurface!))
+        {
+            g.Clear(Color.Transparent); g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+            foreach (var light in lights) g.DrawImage(light.Image, light.Destination, light.Source, GraphicsUnit.Pixel);
+        }
+        var rect = new Rectangle(0, 0, _sceneSurface!.Width, _sceneSurface.Height);
+        var sceneData = _sceneSurface.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+        var lightData = _lightSurface!.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        try
+        {
+            var length = Math.Abs(sceneData.Stride) * sceneData.Height;
+            var scene = new byte[length]; var light = new byte[length];
+            Marshal.Copy(sceneData.Scan0, scene, 0, length); Marshal.Copy(lightData.Scan0, light, 0, length);
+            for (var y = 0; y < sceneData.Height; y++)
+            {
+                var row = y * sceneData.Stride;
+                for (var x = 0; x < sceneData.Width; x++)
+                {
+                    var i = row + x * 4; var alpha = light[i + 3];
+                    if (alpha == 0) continue;
+                    scene[i] = (byte)Math.Min(255, scene[i] + light[i] * alpha / 255);
+                    scene[i + 1] = (byte)Math.Min(255, scene[i + 1] + light[i + 1] * alpha / 255);
+                    scene[i + 2] = (byte)Math.Min(255, scene[i + 2] + light[i + 2] * alpha / 255);
+                }
+            }
+            Marshal.Copy(scene, 0, sceneData.Scan0, length);
+        }
+        finally { _sceneSurface.UnlockBits(sceneData); _lightSurface.UnlockBits(lightData); }
+    }
     private void AdvanceRoute()
     {
         if (_routeIndex >= _route.Count)
         {
+            if (_pendingNpcId is uint npcId && _actors.TryGetValue(npcId, out var npc) && _actors.TryGetValue(_playerId, out var npcPlayer) && Math.Max(Math.Abs(npcPlayer.X - npc.X), Math.Abs(npcPlayer.Y - npc.Y)) <= 3)
+            {
+                _pendingNpcId = null;
+                NpcTalkRequested?.Invoke(npcId);
+            }
             if (_targetActor is uint targetId && _actors.TryGetValue(targetId, out var target) && !target.Dead && _actors.TryGetValue(_playerId, out var me) && Math.Max(Math.Abs(me.X-target.X),Math.Abs(me.Y-target.Y)) <= 1) Attack(target);
             return;
         }
-        if (_stepPending || DateTime.UtcNow < _nextWalk || !_actors.TryGetValue(_playerId, out var player)) return;
-        var next = _route[_routeIndex++]; var dx=next.X-player.X;var dy=next.Y-player.Y;
-        var dir = (dx,dy) switch { (0,-1)=>0,(1,-1)=>1,(1,0)=>2,(1,1)=>3,(0,1)=>4,(-1,1)=>5,(-1,0)=>6,(-1,-1)=>7,_=>player.Direction };
-        _stepPending=true;_nextWalk=DateTime.UtcNow.AddMilliseconds(1200);WalkRequested?.Invoke(next.X+_map!.OriginX,next.Y+_map.OriginY,dir);
+        if (DateTime.UtcNow < _nextWalk) return;
+        if (!_actors.TryGetValue(_playerId, out var player))
+        {
+            SetStatus("等待服务器同步角色位置，尚未发送移动请求");
+            WorldActionDiagnostic?.Invoke($"move-not-sent player={_playerId} actor-count={_actors.Count}");
+            return;
+        }
+        var next = _route[_routeIndex++]; var fromX = player.X; var fromY = player.Y; var dx=next.X-player.X;var dy=next.Y-player.Y;
+        var dir = Direction(player.X, player.Y, next.X, next.Y, player.Direction);
+        var targetX = next.X + _map!.OriginX; var targetY = next.Y + _map.OriginY;
+        var now = Environment.TickCount64 / 1000.0;
+        player.FromX = player.X; player.FromY = player.Y;
+        player.X = next.X; player.Y = next.Y; player.Direction = dir; player.MovedAt = now;
+        player.Action = _routeRunning ? "run" : "walk";
+        player.ActionUntil = now + (_routeRunning ? 0.55 : 0.4);
+        _cameraX = player.X * 48 + 24; _cameraY = player.Y * 32 + 16;
+        _nextWalk = DateTime.UtcNow.AddMilliseconds(600);
+        WorldActionDiagnostic?.Invoke($"move-send player={_playerId} from=({fromX + _map.OriginX},{fromY + _map.OriginY}) to=({targetX},{targetY}) direction={dir} running={_routeRunning}");
+        SetStatus($"移动请求已发送：{targetX},{targetY}");
+        if (_routeRunning) { _lastRunDirection = dir; RunRequested?.Invoke(targetX,targetY,dir); }
+        else WalkRequested?.Invoke(targetX,targetY,dir);
+        Invalidate();
     }
+    private static int Direction(int fromX, int fromY, int toX, int toY, int fallback) =>
+        (Math.Sign(toX - fromX), Math.Sign(toY - fromY)) switch
+        { (0,-1)=>0,(1,-1)=>1,(1,0)=>2,(1,1)=>3,(0,1)=>4,(-1,1)=>5,(-1,0)=>6,(-1,-1)=>7,_=>fallback };
+
+    private void AttackAt(int x, int y, int direction, string description)
+    {
+        if (DateTime.UtcNow < _nextAttack) return;
+        AttackRequested?.Invoke(x, y, direction);
+        _nextAttack = DateTime.UtcNow.AddMilliseconds(900);
+        SetStatus($"\u6b63\u5728\u653b\u51fb\uff1a{description}");
+    }
+
     private void Attack(Actor target)
     {
         if (DateTime.UtcNow < _nextAttack) return;
         if (!_actors.TryGetValue(_playerId, out var player)) return;
         var dx=target.X-player.X;var dy=target.Y-player.Y;
         var direction=(dx,dy) switch { (0,-1)=>0,(1,-1)=>1,(1,0)=>2,(1,1)=>3,(0,1)=>4,(-1,1)=>5,(-1,0)=>6,(-1,-1)=>7,_=>player.Direction };
-        AttackRequested?.Invoke(target.X+_map!.OriginX,target.Y+_map.OriginY,direction);
+        AttackRequested?.Invoke(player.X + _map!.OriginX, player.Y + _map.OriginY, direction);
+        player.Action = "attack";
+        player.ActionUntil = Environment.TickCount64 / 1000.0 + 0.6;
+        player.Direction = direction;
         _nextAttack = DateTime.UtcNow.AddMilliseconds(900);
         SetStatus($"正在攻击 {target.Name}；伤害由服务器判定");
     }

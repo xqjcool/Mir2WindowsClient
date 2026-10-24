@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MirWindowsClient;
 
@@ -27,18 +28,36 @@ public sealed class Form1 : Form
     private readonly ToolTip _itemTips = new();
     private readonly Dictionary<int, Image?> _itemIcons = [];
     private readonly Dictionary<int, Image?> _uiFrameCache = [];
+    private readonly Dictionary<int, Image?> _stateItemImages = [];
+    private readonly List<Image> _localizedCharacterArt = [];
+    private readonly List<(Control Control, Point Position)> _worldHudControls = [];
     private Label? _vitalsLabel;
     private Label? _statsLabel;
     private Label? _sidebarStatsLabel;
     private Label? _mpLabel;
     private readonly List<Label> _skillRows = [];
+    private Panel? _createCharacterPanel;
+    private Panel? _changePasswordPanel;
+    private Panel? _newAccountPanel;
+    private readonly List<TextBox> _newAccountInputs = [];
+    private Label? _newAccountStatus;
+    private TextBox? _newCharacterName;
+    private int _newCharacterSlot = -1;
+    private int _newCharacterJob;
+    private int _newCharacterSex;
+    private int _newCharacterHair = 1;
+    private readonly List<Button> _newCharacterJobButtons = [];
+    private readonly List<Button> _newCharacterSexButtons = [];
     private ListBox? _chatLog;
     private TextBox? _chatInput;
     private Panel? _viewportPanel;
-    private PictureBox? _bottomBoard;
     private Panel? _characterWindow;
     private Panel? _bagWindow;
     private Panel? _skillWindow;
+    private Panel? _npcDialogPanel;
+    private Label? _npcDialogText;
+    private FlowLayoutPanel? _npcDialogOptions;
+    private uint _activeNpcId;
     private Label? _bagDetails;
     private WorldView.ItemView? _selectedBagItem;
     private bool _selfStateRequested;
@@ -47,9 +66,11 @@ public sealed class Form1 : Form
     {
         Text = "Mir 1.76";
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.None;
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
+        MinimizeBox = true;
         ClientSize = new Size(800, 600);
+        MinimumSize = SizeFromClientSize(new Size(800, 600));
         BackColor = Color.Black;
         ForeColor = Color.White;
         Font = new Font("Tahoma", 9f);
@@ -74,7 +95,20 @@ public sealed class Form1 : Form
             {
                 _ = RefreshInventoryAsync(target.Actor, target.X, target.Y);
             }
-            BeginInvoke(new Action(() => _world?.Accept(packet)));
+            BeginInvoke(new Action(() =>
+            {
+                try { _world?.Accept(packet); }
+                catch (Exception ex)
+                {
+                    LoginClient.RecordClientException($"WorldPacket id={packet.Id}", ex);
+                    if (_worldStatus != null)
+                    {
+                        _worldStatus.ForeColor = Color.Gold;
+                        _worldStatus.Text = $"处理服务器数据失败：{ex.Message}";
+                        _worldStatus.Visible = true;
+                    }
+                }
+            }));
         };
         _client.WorldConnectionEnded += ex =>
         {
@@ -107,23 +141,28 @@ public sealed class Form1 : Form
         _loginPanel.Controls.Add(_login);
 
         var create = MakeArtButton(61, 252 + 25, 173 + 207, 76, 32);
-        create.Click += (_, _) => ShowLoginMessage("角色创建请使用已存在的游戏角色；当前服务端未启用注册。", 318, 330);
+        create.Click += (_, _) => ShowNewAccountPanel();
         var changePassword = MakeArtButton(53, 252 + 130, 173 + 207, 76, 32);
-        changePassword.Click += (_, _) => ShowLoginMessage("当前服务端未启用客户端改密功能。", 318, 330);
+        changePassword.Click += (_, _) => ShowChangePasswordPanel();
         var close = MakeArtButton(64, 252 + 252, 173 + 28, 18, 20);
         close.Click += (_, _) => Close();
         _loginPanel.Controls.Add(create);
         _loginPanel.Controls.Add(changePassword);
         _loginPanel.Controls.Add(close);
-        _status.SetBounds(318, 330, 250, 34);
+        // Keep protocol errors below the login button. The old coordinates
+        // placed the message behind the button, making a rejected login look
+        // like the OK button did nothing.
+        _status.SetBounds(270, 418, 500, 48);
         _status.AutoSize = false;
-        _status.ForeColor = Color.White;
+        _status.ForeColor = Color.Gold;
         _status.BackColor = Color.Transparent;
         _status.Font = new Font("Tahoma", 8.5f);
+        _status.TextAlign = ContentAlignment.MiddleLeft;
         _loginPanel.Controls.Add(_status);
         _login.BringToFront();
         _account.BringToFront();
         _password.BringToFront();
+        _status.BringToFront();
     }
 
     private void BuildOriginalCharacterScreen()
@@ -132,23 +171,29 @@ public sealed class Form1 : Form
         if (background != null) _characters.BackgroundImage = background;
         _characters.BackgroundImageLayout = ImageLayout.None;
 
-        AddArt(_characters, 66, 133, 453);
-        AddArt(_characters, 67, 685, 454);
-        AddArt(_characters, 68, 385, 456);
-        AddArt(_characters, 69, 348, 486);
-        AddArt(_characters, 70, 347, 506);
-        AddArt(_characters, 72, 379, 547);
+        AddLocalizedArt(_characters, 66, 133, 453, "选择");
+        AddLocalizedArt(_characters, 67, 685, 454, "选择");
+        AddLocalizedArt(_characters, 68, 385, 456, "开始");
+        AddLocalizedArt(_characters, 69, 348, 486, "创建角色");
+        AddLocalizedArt(_characters, 70, 347, 506, "删除角色");
+        AddLocalizedArt(_characters, 72, 379, 547, "退出");
 
         var firstSelect = MakeHotspot(133, 453, 76, 31);
         var secondSelect = MakeHotspot(685, 454, 76, 31);
         firstSelect.Click += (_, _) => SelectCharacterSlot(0);
         secondSelect.Click += (_, _) => SelectCharacterSlot(1);
+        var create = MakeHotspot(347, 486, 196, 18);
+        create.Click += (_, _) => ShowCreateCharacter();
+        var delete = MakeHotspot(347, 506, 196, 18);
+        delete.Click += async (_, _) => await DeleteSelectedCharacterAsync();
         var start = MakeHotspot(385, 456, 76, 17);
         start.Click += async (_, _) => await StartSelectedCharacterAsync();
         var exit = MakeHotspot(379, 547, 76, 24);
         exit.Click += (_, _) => { _characters.Visible = false; _loginPanel.Visible = true; _account.Focus(); };
         _characters.Controls.Add(firstSelect);
         _characters.Controls.Add(secondSelect);
+        _characters.Controls.Add(create);
+        _characters.Controls.Add(delete);
         _characters.Controls.Add(start);
         _characters.Controls.Add(exit);
         _characters.Tag = (new List<CharacterInfo>(), 0);
@@ -217,6 +262,35 @@ public sealed class Form1 : Form
         parent.Controls.Add(new PictureBox { Bounds = new Rectangle(x, y, image.Width, image.Height), Image = image, SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.Transparent, Enabled = false });
     }
 
+    private void AddLocalizedArt(Control parent, int frame, int x, int y, string text)
+    {
+        var source = LoadUiFrame(frame);
+        if (source == null) return;
+        var localized = new Bitmap(source.Width, source.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using (var graphics = Graphics.FromImage(localized))
+        {
+            graphics.DrawImageUnscaled(source, 0, 0);
+            var inset = source.Height <= 17 ? 1 : 3;
+            var sampleX = Math.Min(3, source.Width - 1);
+            var sampleY = Math.Clamp(source.Height / 2, 0, source.Height - 1);
+            using var background = new SolidBrush(source is Bitmap bitmap ? bitmap.GetPixel(sampleX, sampleY) : Color.FromArgb(45, 35, 27));
+            graphics.FillRectangle(background, inset, inset, source.Width - inset * 2, source.Height - inset * 2);
+            // Use the same type size and weight on every translated button.
+            // The narrow original text strips (NEW/ERASE/EXIT) used to get a
+            // smaller font solely because their source frames are shorter.
+            using var font = new Font("Microsoft YaHei UI", 9.5f, FontStyle.Bold, GraphicsUnit.Point);
+            using var foreground = new SolidBrush(Color.FromArgb(255, 219, 158));
+            using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, FormatFlags = StringFormatFlags.NoWrap };
+            graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SingleBitPerPixelGridFit;
+            var textBounds = new RectangleF(inset, inset, source.Width - inset * 2, source.Height - inset * 2);
+            using var shadow = new SolidBrush(Color.FromArgb(190, 34, 20, 9));
+            graphics.DrawString(text, font, shadow, new RectangleF(textBounds.X + 1, textBounds.Y + 1, textBounds.Width, textBounds.Height), format);
+            graphics.DrawString(text, font, foreground, textBounds, format);
+        }
+        _localizedCharacterArt.Add(localized);
+        parent.Controls.Add(new PictureBox { Bounds = new Rectangle(x, y, localized.Width, localized.Height), Image = localized, SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.Transparent, Enabled = false });
+    }
+
     private Image? LoadUiFrame(int frame)
     {
         if (_uiFrameCache.TryGetValue(frame, out var cached)) return cached;
@@ -225,10 +299,9 @@ public sealed class Form1 : Form
         return cached;
     }
 
-    private void PaintOriginalBottomBoard(object? sender, PaintEventArgs e)
+    private void PaintOriginalBottomBoard(Graphics graphics)
     {
         if (_world == null) return;
-        var graphics = e.Graphics;
         graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
         if (_activeCharacter?.Job == 0 && _world.Level < 28)
         {
@@ -267,10 +340,170 @@ public sealed class Form1 : Form
         if (image != null) graphics.DrawImage(image, destination, new Rectangle(Point.Empty, image.Size), GraphicsUnit.Pixel);
     }
 
-    private void ShowLoginMessage(string message, int x, int y)
+    private void ShowLoginMessage(string message)
     {
         _status.Text = message;
-        _status.SetBounds(x, y, 300, 40);
+        _status.SetBounds(270, 418, 500, 48);
+        _status.BringToFront();
+    }
+
+    private void ShowChangePasswordPanel()
+    {
+        _changePasswordPanel?.Dispose();
+        var panel = new Panel
+        {
+            Bounds = new Rectangle(192, 150, 416, 299),
+            BackgroundImage = LoadUiFrame(50),
+            BackgroundImageLayout = ImageLayout.None,
+            BackColor = Color.Black
+        };
+        _changePasswordPanel = panel;
+        var account = MakePasswordEdit(118, masked: false);
+        var current = MakePasswordEdit(150, masked: true);
+        var next = MakePasswordEdit(177, masked: true);
+        var repeat = MakePasswordEdit(208, masked: true);
+        panel.Controls.AddRange([account, current, next, repeat]);
+
+        var result = new Label { Bounds = new Rectangle(20, 226, 376, 20), ForeColor = Color.Gold, BackColor = Color.Transparent, Font = new Font("Tahoma", 8f), TextAlign = ContentAlignment.MiddleCenter };
+        panel.Controls.Add(result);
+        var ok = MakeHotspot(181, 252, 77, 32);
+        ok.Click += async (_, _) =>
+        {
+            if (next.Text != repeat.Text) { result.Text = "两次输入的新密码不一致。"; next.Focus(); return; }
+            try
+            {
+                ok.Enabled = false;
+                await _client.ChangePasswordAsync(_host.Text.Trim(), account.Text.Trim(), current.Text, next.Text);
+                CloseChangePasswordPanel();
+                ShowLoginMessage("密码修改成功。");
+            }
+            catch (Exception ex) { result.Text = ex.Message; }
+            finally { if (!ok.IsDisposed) ok.Enabled = true; }
+        };
+        var cancel = MakeHotspot(275, 251, 95, 33);
+        cancel.Click += (_, _) => CloseChangePasswordPanel();
+        panel.Controls.Add(ok); panel.Controls.Add(cancel);
+        _loginPanel.Controls.Add(panel);
+        panel.BringToFront();
+        account.Focus();
+    }
+
+    private static TextBox MakePasswordEdit(int y, bool masked) => new()
+    {
+        Bounds = new Rectangle(237, y, 137, 16),
+        MaxLength = 10,
+        UseSystemPasswordChar = masked,
+        BorderStyle = BorderStyle.None,
+        BackColor = Color.Black,
+        ForeColor = Color.White,
+        Font = new Font("Microsoft Sans Serif", 10f)
+    };
+
+    private void CloseChangePasswordPanel()
+    {
+        if (_changePasswordPanel == null) return;
+        _loginPanel.Controls.Remove(_changePasswordPanel);
+        _changePasswordPanel.Dispose();
+        _changePasswordPanel = null;
+        _account.Focus();
+    }
+
+    private void ShowNewAccountPanel()
+    {
+        CloseNewAccountPanel();
+        var background = LoadUiFrame(63);
+        if (background == null) { ShowLoginMessage("缺少原版账号注册窗口素材 prguse-063.png。"); return; }
+        var panel = new Panel
+        {
+            Bounds = new Rectangle((800 - background.Width) / 2, (600 - background.Height) / 2, background.Width, background.Height),
+            BackgroundImage = background,
+            BackgroundImageLayout = ImageLayout.None,
+            BackColor = Color.Black
+        };
+        _newAccountPanel = panel;
+        _newAccountInputs.Clear();
+        AddRegistrationField(panel, 161, 117, 116, 10);
+        AddRegistrationField(panel, 161, 138, 116, 10, true);
+        AddRegistrationField(panel, 162, 159, 116, 10, true);
+        AddRegistrationField(panel, 161, 188, 116, 20);
+        AddRegistrationField(panel, 161, 207, 116, 18);
+        AddRegistrationField(panel, 161, 227, 116, 10);
+        AddRegistrationField(panel, 161, 257, 162, 20);
+        AddRegistrationField(panel, 161, 277, 162, 12);
+        AddRegistrationField(panel, 161, 297, 162, 20);
+        AddRegistrationField(panel, 161, 317, 162, 12);
+        AddRegistrationField(panel, 161, 348, 116, 14);
+        AddRegistrationField(panel, 161, 368, 116, 13);
+        AddRegistrationField(panel, 161, 387, 162, 40);
+
+        _newAccountStatus = new Label { Bounds = new Rectangle(24, background.Height - 35, background.Width - 48, 18), ForeColor = Color.Gold, BackColor = Color.Transparent, Font = new Font("Tahoma", 8f), TextAlign = ContentAlignment.MiddleCenter };
+        panel.Controls.Add(_newAccountStatus);
+        var submit = MakeHotspot(157, 415, 76, 32);
+        submit.Click += async (_, _) => await SubmitNewAccountAsync(submit);
+        var cancel = MakeHotspot(445, 418, 86, 32);
+        cancel.Click += (_, _) => CloseNewAccountPanel();
+        var close = MakeHotspot(587, 33, 16, 23);
+        close.Click += (_, _) => CloseNewAccountPanel();
+        panel.Controls.Add(submit); panel.Controls.Add(cancel); panel.Controls.Add(close);
+        _loginPanel.Controls.Add(panel);
+        panel.BringToFront();
+        _newAccountInputs[0].Focus();
+    }
+
+    private void AddRegistrationField(Panel panel, int x, int y, int width, int maxLength, bool masked = false)
+    {
+        var edit = new TextBox
+        {
+            Bounds = new Rectangle(x, y, width, 16),
+            MaxLength = maxLength,
+            UseSystemPasswordChar = masked,
+            BorderStyle = BorderStyle.None,
+            BackColor = Color.Black,
+            ForeColor = Color.White,
+            Font = new Font("Microsoft Sans Serif", 10f)
+        };
+        _newAccountInputs.Add(edit);
+        panel.Controls.Add(edit);
+    }
+
+    private async Task SubmitNewAccountAsync(Button submit)
+    {
+        if (_newAccountInputs.Count != 13 || _newAccountStatus == null) return;
+        var value = _newAccountInputs.Select(input => input.Text.Trim()).ToArray();
+        if (value[0].Length < 3) { _newAccountStatus.Text = "账号至少需要 3 个字符。"; _newAccountInputs[0].Focus(); return; }
+        if (value[1].Length < 3) { _newAccountStatus.Text = "密码至少需要 3 个字符。"; _newAccountInputs[1].Focus(); return; }
+        if (value[1] != value[2]) { _newAccountStatus.Text = "两次输入的密码不一致。"; _newAccountInputs[2].Focus(); return; }
+        if (new[] { value[3], value[4], value[5], value[6], value[7], value[8], value[9] }.Any(string.IsNullOrWhiteSpace))
+        { _newAccountStatus.Text = "请填写姓名、身份证号、生日和两组密保问题及答案。"; return; }
+        var birthday = value[5].Split('/');
+        if (birthday.Length != 3 || !int.TryParse(birthday[0], out var year) || !int.TryParse(birthday[1], out var month) || !int.TryParse(birthday[2], out var day)
+            || year is <= 1890 or > 2101 || month is < 1 or > 12 || day is < 1 or > 31)
+        { _newAccountStatus.Text = "生日格式请使用 年/月/日。"; _newAccountInputs[5].Focus(); return; }
+
+        try
+        {
+            submit.Enabled = false;
+            _newAccountStatus.Text = "正在提交注册资料…";
+            var registration = new AccountRegistration(value[0], value[1], value[3], value[4], value[10], value[6], value[7], value[12], value[8], value[9], value[5], value[11]);
+            await _client.RegisterAccountAsync(_host.Text.Trim(), registration);
+            _account.Text = value[0];
+            CloseNewAccountPanel();
+            ShowLoginMessage("账号创建成功，请登录。");
+            _password.Focus();
+        }
+        catch (Exception ex) { if (_newAccountStatus != null) _newAccountStatus.Text = ex.Message; }
+        finally { if (!submit.IsDisposed) submit.Enabled = true; }
+    }
+
+    private void CloseNewAccountPanel()
+    {
+        if (_newAccountPanel == null) return;
+        _loginPanel.Controls.Remove(_newAccountPanel);
+        _newAccountPanel.Dispose();
+        _newAccountPanel = null;
+        _newAccountInputs.Clear();
+        _newAccountStatus = null;
+        _account.Focus();
     }
 
     private void SetWorldStatus(string message)
@@ -329,6 +562,161 @@ public sealed class Form1 : Form
             await EnterWorldAsync(selection.Item1[selection.Item2]);
     }
 
+    private void ShowCreateCharacter()
+    {
+        if (_characters.Tag is not ValueTuple<List<CharacterInfo>, int> selection || selection.Item1.Count >= 2)
+        {
+            _characterStatus!.Text = "一个账号最多创建两个角色。";
+            return;
+        }
+
+        CloseCreateCharacter();
+        _newCharacterSlot = selection.Item1.Count;
+        _newCharacterJob = 0;
+        _newCharacterSex = 0;
+        _newCharacterHair = 1;
+
+        // Original TSelectChrScene.MakeNewChar positions prguse-073 above the
+        // slot being created, with its controls at these FState.pas offsets.
+        var panel = new Panel
+        {
+            Bounds = new Rectangle(_newCharacterSlot == 0 ? 70 : 420, 15, 300, 417),
+            BackgroundImage = LoadUiFrame(73),
+            BackgroundImageLayout = ImageLayout.None,
+            BackColor = Color.Black
+        };
+        _createCharacterPanel = panel;
+        _newCharacterName = new TextBox { Bounds = new Rectangle(71, 107, 138, 21), MaxLength = 14, BorderStyle = BorderStyle.None, BackColor = Color.FromArgb(27, 22, 16), ForeColor = Color.White, Font = new Font("Microsoft Sans Serif", 10f) };
+        _newCharacterName.TextChanged += (_, _) => RefreshNewCharacterPreview();
+        panel.Controls.Add(_newCharacterName);
+
+        for (var job = 0; job < 3; job++)
+        {
+            var selectedJob = job;
+            var button = MakeArtButton(74 + job, 48 + job * 45, 157, 44, 36);
+            button.Click += (_, _) => SelectNewCharacterJob(selectedJob);
+            _newCharacterJobButtons.Add(button);
+            panel.Controls.Add(button);
+        }
+        for (var sex = 0; sex < 2; sex++)
+        {
+            var selectedSex = sex;
+            var button = MakeArtButton(77 + sex, 93 + sex * 45, 231, 44, 35);
+            button.Click += (_, _) => SelectNewCharacterSex(selectedSex);
+            _newCharacterSexButtons.Add(button);
+            panel.Controls.Add(button);
+        }
+
+        var previousHair = MakeArtButton(79, 76, 308, 36, 27);
+        previousHair.Click += (_, _) => { _newCharacterHair = (_newCharacterHair + 14) % 15; RefreshNewCharacterPreview(); };
+        var nextHair = MakeArtButton(80, 170, 308, 36, 27);
+        nextHair.Click += (_, _) => { _newCharacterHair = (_newCharacterHair + 1) % 15; RefreshNewCharacterPreview(); };
+        var ok = MakeArtButton(62, 101, 359, 76, 32);
+        ok.Click += async (_, _) => await CreateSelectedCharacterAsync();
+        var close = MakeArtButton(64, 247, 30, 16, 23);
+        close.Click += (_, _) => CloseCreateCharacter();
+        panel.Controls.Add(previousHair); panel.Controls.Add(nextHair); panel.Controls.Add(ok); panel.Controls.Add(close);
+        _characters.Controls.Add(panel);
+        panel.BringToFront();
+        _newCharacterName.Focus();
+        RefreshNewCharacterPreview();
+    }
+
+    private void SelectNewCharacterJob(int job)
+    {
+        _newCharacterJob = job;
+        UpdateNewCharacterChoiceHighlight();
+        RefreshNewCharacterPreview();
+    }
+
+    private void SelectNewCharacterSex(int sex)
+    {
+        _newCharacterSex = sex;
+        UpdateNewCharacterChoiceHighlight();
+        RefreshNewCharacterPreview();
+    }
+
+    private void UpdateNewCharacterChoiceHighlight()
+    {
+        for (var i = 0; i < _newCharacterJobButtons.Count; i++)
+            _newCharacterJobButtons[i].FlatAppearance.BorderSize = i == _newCharacterJob ? 1 : 0;
+        for (var i = 0; i < _newCharacterSexButtons.Count; i++)
+            _newCharacterSexButtons[i].FlatAppearance.BorderSize = i == _newCharacterSex ? 1 : 0;
+    }
+
+    private void RefreshNewCharacterPreview()
+    {
+        if (_newCharacterSlot < 0) return;
+        var draft = new CharacterInfo(_newCharacterName?.Text ?? "", _newCharacterJob, _newCharacterHair, 1, _newCharacterSex);
+        RemoveSelectPortrait(_newCharacterSlot);
+        AddSelectPortrait(_newCharacterSlot, draft);
+    }
+
+    private async Task CreateSelectedCharacterAsync()
+    {
+        var name = _newCharacterName?.Text.Trim() ?? "";
+        if (name.Length == 0) { _characterStatus!.Text = "请输入角色名。"; _newCharacterName?.Focus(); return; }
+        SetBusy(true, "正在创建角色…");
+        try
+        {
+            var characters = await _client.CreateCharacterAsync(name, _newCharacterHair, _newCharacterJob, _newCharacterSex);
+            CloseCreateCharacter();
+            RefreshCharacterSelection(characters, Math.Max(0, characters.Count - 1));
+            _characterStatus!.Text = "角色创建成功。";
+        }
+        catch (Exception ex) { _characterStatus!.Text = ex.Message; }
+        finally { SetBusy(false); }
+    }
+
+    private async Task DeleteSelectedCharacterAsync()
+    {
+        if (_characters.Tag is not ValueTuple<List<CharacterInfo>, int> selection || selection.Item2 >= selection.Item1.Count) return;
+        var character = selection.Item1[selection.Item2];
+        if (MessageBox.Show(this, $"确定删除角色“{character.Name}”吗？", "删除角色", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        SetBusy(true, "正在删除角色…");
+        try
+        {
+            var characters = await _client.DeleteCharacterAsync(character.Name);
+            RefreshCharacterSelection(characters, Math.Min(selection.Item2, Math.Max(0, characters.Count - 1)));
+            _characterStatus!.Text = "角色已删除。";
+        }
+        catch (Exception ex) { _characterStatus!.Text = ex.Message; }
+        finally { SetBusy(false); }
+    }
+
+    private void CloseCreateCharacter()
+    {
+        if (_createCharacterPanel != null)
+        {
+            _characters.Controls.Remove(_createCharacterPanel);
+            _createCharacterPanel.Dispose();
+            _createCharacterPanel = null;
+        }
+        if (_newCharacterSlot >= 0) RemoveSelectPortrait(_newCharacterSlot);
+        _newCharacterName = null;
+        _newCharacterSlot = -1;
+        _newCharacterJobButtons.Clear();
+        _newCharacterSexButtons.Clear();
+    }
+
+    private void RefreshCharacterSelection(IReadOnlyList<CharacterInfo> characters, int selectedIndex)
+    {
+        var list = characters.Take(2).ToList();
+        var selected = list.Count == 0 ? 0 : Math.Clamp(selectedIndex, 0, list.Count - 1);
+        _characters.Tag = (list, selected);
+        for (var slot = 0; slot < 2; slot++)
+        {
+            var character = slot < list.Count ? list[slot] : null;
+            _selectName[slot]!.Text = character?.Name ?? string.Empty;
+            _selectLevel[slot]!.Text = character?.Level.ToString() ?? string.Empty;
+            _selectJob[slot]!.Text = character?.JobName ?? string.Empty;
+            RemoveSelectPortrait(slot);
+            if (character != null) AddSelectPortrait(slot, character);
+        }
+        _characterStatus!.Text = list.Count == 0 ? "当前账号没有可进入的角色" : string.Empty;
+        _characters.Invalidate();
+    }
+
     private async Task LoginAsync()
     {
         if (string.IsNullOrWhiteSpace(_account.Text) || string.IsNullOrEmpty(_password.Text))
@@ -341,17 +729,7 @@ public sealed class Form1 : Form
         {
             var characters = await _client.LoginAsync(_host.Text.Trim(), _account.Text.Trim(), _password.Text, _server.Text.Trim());
             _password.Clear();
-            _characters.Tag = (characters.Take(2).ToList(), 0);
-            for (var slot = 0; slot < 2; slot++)
-            {
-                var character = slot < characters.Count ? characters[slot] : null;
-                _selectName[slot]!.Text = character?.Name ?? string.Empty;
-                _selectLevel[slot]!.Text = character?.Level.ToString() ?? string.Empty;
-                _selectJob[slot]!.Text = character?.JobName ?? string.Empty;
-                RemoveSelectPortrait(slot);
-                if (character != null) AddSelectPortrait(slot, character);
-            }
-            _characterStatus!.Text = characters.Count == 0 ? "当前账号没有可进入的角色" : string.Empty;
+            RefreshCharacterSelection(characters, 0);
             _characters.Invalidate();
 
             _loginPanel.Visible = false;
@@ -387,12 +765,39 @@ public sealed class Form1 : Form
 
     private void BuildWorldInterface(string assetRoot)
     {
-        if (_world == null) _world = new WorldView(assetRoot);
+        if (_world == null)
+        {
+            _world = new WorldView(assetRoot);
+            _world.WorldActionDiagnostic += LoginClient.RecordWorldAction;
+        }
         _world.Dock = DockStyle.Fill;
         _world.WalkRequested += async (x, y, direction) =>
         {
-            try { await _client.WalkAsync(x, y, direction); }
-            catch (Exception ex) { if (!IsDisposed) BeginInvoke(new Action(() => _status.Text = ex.Message)); }
+            try
+            {
+                await _client.WalkAsync(x, y, direction);
+                LoginClient.RecordWorldAction($"wire-send command=3011 target=({x},{y}) direction={direction}");
+                if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"移动请求已发送：{x},{y}")));
+            }
+            catch (Exception ex)
+            {
+                LoginClient.RecordClientException($"Walk target=({x},{y}) direction={direction}", ex);
+                if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"移动请求失败：{ex.Message}")));
+            }
+        };
+        _world.RunRequested += async (x, y, direction) =>
+        {
+            try
+            {
+                await _client.RunAsync(x, y, direction);
+                LoginClient.RecordWorldAction($"wire-send command=3013 target=({x},{y}) direction={direction}");
+                if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"跑步请求已发送：{x},{y}")));
+            }
+            catch (Exception ex)
+            {
+                LoginClient.RecordClientException($"Run target=({x},{y}) direction={direction}", ex);
+                if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"跑步请求失败：{ex.Message}")));
+            }
         };
         _world.AttackRequested += async (x, y, direction) =>
         {
@@ -401,29 +806,49 @@ public sealed class Form1 : Form
         };
         _world.PickupRequested += async (x, y) =>
         {
-            try { await _client.PickupAsync(x, y); }
-            catch (Exception ex) { if (!IsDisposed) BeginInvoke(new Action(() => _status.Text = ex.Message)); }
+            try
+            {
+                await _client.PickupAsync(x, y);
+                if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"拾取请求已发送：{x},{y}")));
+            }
+            catch (Exception ex) { if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"拾取请求失败：{ex.Message}"))); }
+        };
+        _world.NpcTalkRequested += async actor =>
+        {
+            try { await _client.TalkToNpcAsync(actor); }
+            catch (Exception ex) { if (!IsDisposed) BeginInvoke(new Action(() => SetWorldStatus($"NPC 对话请求失败：{ex.Message}"))); }
+        };
+        _world.NpcDialogChanged += (actor, text) =>
+        {
+            if (!IsDisposed) BeginInvoke(new Action(() => ShowNpcDialog(actor, text)));
+        };
+        _world.NpcDialogClosed += () =>
+        {
+            if (!IsDisposed) BeginInvoke(new Action(() => { if (_npcDialogPanel != null) _npcDialogPanel.Visible = false; }));
         };
         var root = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
         _viewportPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Black };
         _viewportPanel.Controls.Add(_world);
-        _bottomBoard = new PictureBox { Image = LoadUiFrame(1), Bounds = new Rectangle(0, 349, 800, 251), SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.Transparent, Enabled = false };
-        _bottomBoard.Paint += PaintOriginalBottomBoard;
-        _viewportPanel.Controls.Add(_bottomBoard);
-        _bottomBoard.BringToFront();
+        _world.SetHudBoard(LoadUiFrame(1));
+        _world.HudBoardPaint = PaintOriginalBottomBoard;
 
         // These controls are children of the original DBottom window. Its top
         // edge is y=349 in the 800x600 layout, so DFM Top values are relative
         // to that panel rather than to the screen.
         const int boardTop = 349;
         var stateButton = MakeArtButton(8, 643, boardTop + 61, 24, 24);
+        _worldHudControls.Add((stateButton, new Point(643, 410)));
         stateButton.Click += (_, _) => ToggleClassicWindow(_characterWindow);
         var bagButton = MakeArtButton(9, 682, boardTop + 41, 24, 22);
+        _worldHudControls.Add((bagButton, new Point(682, 390)));
         bagButton.Click += (_, _) => ToggleClassicWindow(_bagWindow);
         var magicButton = MakeArtButton(10, 722, boardTop + 21, 24, 23);
+        _worldHudControls.Add((magicButton, new Point(722, 370)));
         magicButton.Click += (_, _) => ToggleClassicWindow(_skillWindow);
         var optionButton = MakeArtButton(11, 764, boardTop + 11, 24, 23);
-        optionButton.Click += (_, _) => ShowLoginMessage("设置窗口尚未移植。", 640, 90);
+        _worldHudControls.Add((optionButton, new Point(764, 360)));
+        _itemTips.SetToolTip(optionButton, "退出游戏 (Esc)");
+        optionButton.Click += (_, _) => PromptExitGame();
         foreach (var button in new[] { stateButton, bagButton, magicButton, optionButton })
         {
             _viewportPanel.Controls.Add(button);
@@ -431,16 +856,38 @@ public sealed class Form1 : Form
         }
 
         var pickup = new Button { Text = "拾取", Width = 42, Height = 24, Left = 745, Top = 568, FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(35, 30, 25), ForeColor = Color.White, Font = new Font("Tahoma", 8f) };
+        _worldHudControls.Add((pickup, new Point(745, 568)));
         pickup.FlatAppearance.BorderColor = Color.FromArgb(142, 119, 83);
         pickup.Click += (_, _) => _world?.PickupAtPlayer();
         _viewportPanel.Controls.Add(pickup);
         pickup.BringToFront();
 
         var worldStatus = new Label { Left = 209, Top = 472, Width = 390, Height = 18, ForeColor = Color.FromArgb(35, 31, 26), BackColor = Color.Transparent, Font = new Font("Tahoma", 8f), Text = string.Empty, Visible = false };
+        _worldHudControls.Add((worldStatus, new Point(209, 472)));
         _worldStatus = worldStatus;
         _world.StatusChanged += text => { if (!IsDisposed) { worldStatus.Text = text; worldStatus.Visible = !string.IsNullOrWhiteSpace(text); } };
         _viewportPanel.Controls.Add(worldStatus);
         worldStatus.BringToFront();
+        var chatPanel = BuildChatPanel();
+        chatPanel.SetBounds(210, 480, 390, 120);
+        _worldHudControls.Add((chatPanel, new Point(210, 480)));
+        _viewportPanel.Controls.Add(chatPanel);
+        chatPanel.BringToFront();
+        _chatInput!.KeyDown += async (_, e) =>
+        {
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+            var message = _chatInput.Text.Trim();
+            if (message.Length == 0) return;
+            _chatInput.Clear();
+            try
+            {
+                await _client.SayAsync(message);
+                AppendChatLine($"{_activeCharacter?.Name ?? "我"}：{message}");
+            }
+            catch (Exception ex) { SetWorldStatus($"聊天发送失败：{ex.Message}"); }
+        };
+        _world.WorldChatReceived += AppendChatLine;
         _characterWindow = BuildCharacterWindow();
         _bagWindow = BuildBagWindow();
         _skillWindow = BuildSkillWindow();
@@ -450,16 +897,22 @@ public sealed class Form1 : Form
             popup.Location = new Point(800 - popup.Width, 52);
             _viewportPanel.Controls.Add(popup);
         }
-        _viewportPanel.SizeChanged += (_, _) => { if (_viewportPanel != null) RepositionClassicWindows(); };
+        _viewportPanel.SizeChanged += (_, _) =>
+        {
+            LayoutClassicWorldHud();
+            RepositionClassicWindows();
+        };
         root.Controls.Add(_viewportPanel);
         Controls.Add(root); root.BringToFront();
         _world.CharacterDataChanged += RefreshCharacterPanels;
         RefreshCharacterPanels();
         _characters.Visible = false;
         _loginPanel.Visible = false;
-        FormBorderStyle = FormBorderStyle.None;
-        MaximizeBox = false;
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true;
         ClientSize = new Size(800, 600);
+        LayoutClassicWorldHud();
     }
 
     private Panel BuildClassicSidebar()
@@ -537,7 +990,7 @@ public sealed class Form1 : Form
             var label = MakeSlotLabel(); label.Dock = DockStyle.None; label.SetBounds(placement.X, placement.Y, placement.W, placement.H); label.Font = new Font("Tahoma", 6.5f); label.BackColor = Color.Transparent; label.TextAlign = ContentAlignment.MiddleCenter;
             _equipmentSlots[placement.Slot] = label; panel.Controls.Add(label); label.BringToFront();
         }
-        _statsLabel = new Label { Left = 114, Top = 98, Width = 112, Height = 150, ForeColor = Color.White, BackColor = Color.Transparent, Font = new Font("Tahoma", 7.5f), Text = "--\n--\n--\n--\n--\n--/--\n--/--" };
+        _statsLabel = new Label { Left = 12, Top = 268, Width = 208, Height = 48, ForeColor = Color.FromArgb(238, 219, 170), BackColor = Color.Transparent, Font = new Font("Microsoft YaHei UI", 7f), Text = "攻击 --  魔法 --  道术 --\n防御 --  魔防 --\n生命 --/--  魔法 --/--" };
         panel.Controls.Add(_statsLabel);
         var close = MakeHotspot(8, 39, 16, 23);
         close.Click += (_, _) => { if (_characterWindow != null) _characterWindow.Visible = false; };
@@ -581,22 +1034,30 @@ public sealed class Form1 : Form
 
     private Panel BuildChatPanel()
     {
-        var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(17, 27, 43), Padding = new Padding(6) };
-        _chatLog = new ListBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(13, 19, 27), ForeColor = Color.FromArgb(220, 216, 199), BorderStyle = BorderStyle.None, IntegralHeight = false };
-        _chatLog.Items.Add("左键点地移动，左键点怪物攻击；F9 背包，F10 人物，F11 技能。");
-        _chatInput = new TextBox { Dock = DockStyle.Bottom, Height = 26, BackColor = Color.FromArgb(31, 44, 64), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle, PlaceholderText = "输入聊天内容，回车发送" };
+        var panel = new Panel { BackColor = Color.White, Padding = Padding.Empty };
+        _chatLog = new ListBox { Dock = DockStyle.Fill, BackColor = Color.White, ForeColor = Color.FromArgb(50, 42, 32), BorderStyle = BorderStyle.None, IntegralHeight = false, Font = new Font("Microsoft YaHei UI", 8f) };
+        _chatInput = new TextBox { Dock = DockStyle.Bottom, Height = 23, BackColor = Color.White, ForeColor = Color.Black, BorderStyle = BorderStyle.FixedSingle, PlaceholderText = "点击此处聊天，回车发送" };
         panel.Controls.Add(_chatLog); panel.Controls.Add(_chatInput); return panel;
+    }
+
+    private void AppendChatLine(string text)
+    {
+        if (IsDisposed || _chatLog == null || string.IsNullOrWhiteSpace(text)) return;
+        if (_chatLog.InvokeRequired) { BeginInvoke(new Action(() => AppendChatLine(text))); return; }
+        _chatLog.Items.Add(text);
+        while (_chatLog.Items.Count > 100) _chatLog.Items.RemoveAt(0);
+        if (_chatLog.Items.Count > 0) _chatLog.TopIndex = _chatLog.Items.Count - 1;
     }
 
     private void RefreshCharacterPanels()
     {
         if (IsDisposed || _world == null) return;
         if (InvokeRequired) { BeginInvoke(new Action(RefreshCharacterPanels)); return; }
-        _bottomBoard?.Invalidate();
+        _world.Invalidate();
         if (_vitalsLabel != null) _vitalsLabel.Text = _world.HpText;
         if (_mpLabel != null) _mpLabel.Text = _world.MpText;
         if (_sidebarStatsLabel != null) _sidebarStatsLabel.Text = _world.CombatStats;
-        if (_statsLabel != null) _statsLabel.Text = string.Join(Environment.NewLine, _world.Stats.Ac, _world.Stats.Mac, _world.Stats.Dc, _world.Stats.Mc, _world.Stats.Sc, $"{_world.CurrentHp}/{_world.MaximumHp}", $"{_world.CurrentMp}/{_world.MaximumMp}");
+        if (_statsLabel != null) _statsLabel.Text = $"攻击 {_world.Stats.Dc}  魔法 {_world.Stats.Mc}  道术 {_world.Stats.Sc}\n防御 {_world.Stats.Ac}  魔防 {_world.Stats.Mac}\n生命 {_world.CurrentHp}/{_world.MaximumHp}  魔法 {_world.CurrentMp}/{_world.MaximumMp}";
         RefreshPaperdoll();
         for (var i = 0; i < _bagSlots.Count; i++)
         {
@@ -657,6 +1118,10 @@ public sealed class Form1 : Form
         stats[12] = 80; stats[14] = 30; stats[16] = 100; stats[18] = 50;
         _world.Accept(new ServerPacket(1, 52, 347, 349, 0, stats, []));
         BuildWorldInterface(FindGameDataRoot());
+        // Exercise repeated paperdoll refreshes as the server's equipment
+        // packet (751) arrives after initial login.
+        for (var i = 0; i < 3; i++)
+            _world.Accept(new ServerPacket(0, 751, 0, 0, 0, new byte[1688], []));
     }
 
     private void RefreshPaperdoll()
@@ -665,7 +1130,9 @@ public sealed class Form1 : Form
         foreach (var layer in _paperdollImages)
         {
             _characterWindow.Controls.Remove(layer);
-            layer.Image?.Dispose();
+            // Images supplied by LoadUiFrame/LoadStateItemImage are shared
+            // caches. Disposing them here invalidates the cache and the next
+            // server status packet throws while reading Image.Width.
             layer.Dispose();
         }
         _paperdollImages.Clear();
@@ -688,7 +1155,13 @@ public sealed class Form1 : Form
         layer.BringToFront();
     }
 
-    private Image? LoadStateItemImage(int looks) => LoadUiImage(Path.Combine("frames", $"stateitem-{looks:000}.png"));
+    private Image? LoadStateItemImage(int looks)
+    {
+        if (_stateItemImages.TryGetValue(looks, out var image)) return image;
+        image = LoadUiImage(Path.Combine("frames", $"stateitem-{looks:000}.png"));
+        _stateItemImages[looks] = image;
+        return image;
+    }
 
     private async Task ActivateBagItemAsync(WorldView.ItemView item)
     {
@@ -747,17 +1220,82 @@ public sealed class Form1 : Form
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
+        if (_world != null && keyData == (Keys.Control | Keys.H))
+        {
+            _ = ToggleAttackModeAsync();
+            return true;
+        }
         if (_world != null && keyData is Keys.F9 or Keys.K) { ToggleClassicWindow(_bagWindow); return true; }
         if (_world != null && keyData is Keys.F10 or Keys.J) { ToggleClassicWindow(_characterWindow); return true; }
         if (_world != null && keyData is Keys.F11 or Keys.L) { ToggleClassicWindow(_skillWindow); return true; }
-        if (_world != null && keyData == Keys.Escape && (_bagWindow?.Visible == true || _characterWindow?.Visible == true || _skillWindow?.Visible == true))
+        if (_world != null && keyData == Keys.Escape)
         {
-            if (_bagWindow != null) _bagWindow.Visible = false;
-            if (_characterWindow != null) _characterWindow.Visible = false;
-            if (_skillWindow != null) _skillWindow.Visible = false;
+            var popupOpen = _bagWindow?.Visible == true || _characterWindow?.Visible == true || _skillWindow?.Visible == true;
+            if (popupOpen)
+            {
+                if (_bagWindow != null) _bagWindow.Visible = false;
+                if (_characterWindow != null) _characterWindow.Visible = false;
+                if (_skillWindow != null) _skillWindow.Visible = false;
+            }
+            else PromptExitGame();
             return true;
         }
         return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    private async Task ToggleAttackModeAsync()
+    {
+        try { await _client.SayAsync("@AttackMode"); SetWorldStatus("已请求切换攻击模式"); }
+        catch (Exception ex) { SetWorldStatus($"切换攻击模式失败：{ex.Message}"); }
+    }
+
+    private void ShowNpcDialog(uint actor, string text)
+    {
+        if (_viewportPanel == null) return;
+        _activeNpcId = actor;
+        if (_npcDialogPanel == null)
+        {
+            var panel = new Panel { Size = new Size(460, 270), BackColor = Color.FromArgb(20, 24, 31), BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(12) };
+            _npcDialogText = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(244, 222, 177), Font = new Font("Microsoft YaHei UI", 10f), AutoEllipsis = true };
+            _npcDialogOptions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 74, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, AutoScroll = true, BackColor = panel.BackColor };
+            var close = new Button { Text = "关闭对话", Width = 88, Height = 28, Dock = DockStyle.Bottom, FlatStyle = FlatStyle.Flat, ForeColor = Color.White, BackColor = Color.FromArgb(79, 55, 34) };
+            close.Click += async (_, _) =>
+            {
+                try { await _client.SelectNpcOptionAsync(_activeNpcId, "@exit"); }
+                catch (Exception ex) { SetWorldStatus($"关闭 NPC 对话失败：{ex.Message}"); }
+                if (_npcDialogPanel != null) _npcDialogPanel.Visible = false;
+            };
+            panel.Controls.Add(_npcDialogText);
+            panel.Controls.Add(_npcDialogOptions);
+            panel.Controls.Add(close);
+            _npcDialogPanel = panel;
+            _viewportPanel.Controls.Add(panel);
+        }
+
+        _npcDialogText!.Text = Regex.Replace(text, "<([^<>/]+)/(@[^<>]+)>", "$1");
+        _npcDialogOptions!.Controls.Clear();
+        foreach (Match match in Regex.Matches(text, "<([^<>/]+)/(@[^<>]+)>"))
+        {
+            var label = match.Groups[1].Value.Trim();
+            var command = match.Groups[2].Value.Trim();
+            if (label.Length == 0 || command.Length == 0) continue;
+            var option = new Button { Text = label, AutoSize = true, MinimumSize = new Size(80, 30), FlatStyle = FlatStyle.Flat, ForeColor = Color.White, BackColor = Color.FromArgb(70, 54, 36), Margin = new Padding(3) };
+            option.Click += async (_, _) =>
+            {
+                try { await _client.SelectNpcOptionAsync(_activeNpcId, command); }
+                catch (Exception ex) { SetWorldStatus($"NPC 选项请求失败：{ex.Message}"); }
+            };
+            _npcDialogOptions.Controls.Add(option);
+        }
+        _npcDialogPanel!.Location = new Point(Math.Max(8, (_viewportPanel.ClientSize.Width - _npcDialogPanel.Width) / 2), Math.Max(8, (_viewportPanel.ClientSize.Height - _npcDialogPanel.Height) / 2));
+        _npcDialogPanel.Visible = true;
+        _npcDialogPanel.BringToFront();
+    }
+
+    private void PromptExitGame()
+    {
+        if (MessageBox.Show(this, "确定退出游戏吗？", "Mir 1.76", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            Application.Exit();
     }
 
     private void ToggleClassicWindow(Panel? panel)
@@ -766,15 +1304,31 @@ public sealed class Form1 : Form
         var show = !panel.Visible;
         foreach (var window in new[] { _characterWindow, _bagWindow, _skillWindow }) if (window != null) window.Visible = false;
         if (!show) return;
-        panel.Location = panel == _bagWindow ? new Point(0, 0) : panel == _characterWindow ? new Point(800 - panel.Width, 52) : new Point(800 - panel.Width, 52);
+        var (offsetX, offsetY) = WorldHudOrigin();
+        panel.Location = panel == _bagWindow ? new Point(offsetX, offsetY) : new Point(offsetX + 800 - panel.Width, offsetY + 52);
         panel.Visible = true; panel.BringToFront();
+    }
+
+    private (int X, int Y) WorldHudOrigin()
+    {
+        if (_viewportPanel == null) return (0, 0);
+        return (Math.Max(0, (_viewportPanel.ClientSize.Width - 800) / 2), Math.Max(0, _viewportPanel.ClientSize.Height - 600));
+    }
+
+    private void LayoutClassicWorldHud()
+    {
+        if (_viewportPanel == null) return;
+        var (offsetX, offsetY) = WorldHudOrigin();
+        foreach (var (control, position) in _worldHudControls)
+            if (!control.IsDisposed) control.Location = new Point(offsetX + position.X, offsetY + position.Y);
     }
 
     private void RepositionClassicWindows()
     {
         if (_viewportPanel == null) return;
+        var (offsetX, offsetY) = WorldHudOrigin();
         foreach (var panel in new[] { _characterWindow, _bagWindow, _skillWindow })
-            if (panel?.Visible == true) panel.Location = panel == _bagWindow ? new Point(0, 0) : new Point(800 - panel.Width, 52);
+            if (panel?.Visible == true) panel.Location = panel == _bagWindow ? new Point(offsetX, offsetY) : new Point(offsetX + 800 - panel.Width, offsetY + 52);
     }
 
     private void SetBusy(bool busy, string? status = null)
