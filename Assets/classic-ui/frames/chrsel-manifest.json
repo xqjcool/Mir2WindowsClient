@@ -1,0 +1,1688 @@
+{
+  "source": "ChrSel.wil",
+  "sourceSha256": "aac0d5e569418920afa6fd6c4d9aa61ad8ec11d352e7e9a6f7fa4b0d89cacc86",
+  "count": 280,
+  "frames": {
+    "40": {
+      "file": "Assets/classic-ui/frames/chrsel-040.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "41": {
+      "file": "Assets/classic-ui/frames/chrsel-041.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "42": {
+      "file": "Assets/classic-ui/frames/chrsel-042.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "43": {
+      "file": "Assets/classic-ui/frames/chrsel-043.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "44": {
+      "file": "Assets/classic-ui/frames/chrsel-044.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "45": {
+      "file": "Assets/classic-ui/frames/chrsel-045.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "46": {
+      "file": "Assets/classic-ui/frames/chrsel-046.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "47": {
+      "file": "Assets/classic-ui/frames/chrsel-047.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "48": {
+      "file": "Assets/classic-ui/frames/chrsel-048.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "49": {
+      "file": "Assets/classic-ui/frames/chrsel-049.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "50": {
+      "file": "Assets/classic-ui/frames/chrsel-050.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "51": {
+      "file": "Assets/classic-ui/frames/chrsel-051.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "52": {
+      "file": "Assets/classic-ui/frames/chrsel-052.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "53": {
+      "file": "Assets/classic-ui/frames/chrsel-053.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "54": {
+      "file": "Assets/classic-ui/frames/chrsel-054.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "55": {
+      "file": "Assets/classic-ui/frames/chrsel-055.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "56": {
+      "file": "Assets/classic-ui/frames/chrsel-056.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "57": {
+      "file": "Assets/classic-ui/frames/chrsel-057.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "58": {
+      "file": "Assets/classic-ui/frames/chrsel-058.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "59": {
+      "file": "Assets/classic-ui/frames/chrsel-059.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "60": {
+      "file": "Assets/classic-ui/frames/chrsel-060.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "61": {
+      "file": "Assets/classic-ui/frames/chrsel-061.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "62": {
+      "file": "Assets/classic-ui/frames/chrsel-062.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "63": {
+      "file": "Assets/classic-ui/frames/chrsel-063.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "64": {
+      "file": "Assets/classic-ui/frames/chrsel-064.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "65": {
+      "file": "Assets/classic-ui/frames/chrsel-065.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "66": {
+      "file": "Assets/classic-ui/frames/chrsel-066.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "67": {
+      "file": "Assets/classic-ui/frames/chrsel-067.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "68": {
+      "file": "Assets/classic-ui/frames/chrsel-068.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "69": {
+      "file": "Assets/classic-ui/frames/chrsel-069.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "70": {
+      "file": "Assets/classic-ui/frames/chrsel-070.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "71": {
+      "file": "Assets/classic-ui/frames/chrsel-071.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "72": {
+      "file": "Assets/classic-ui/frames/chrsel-072.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "73": {
+      "file": "Assets/classic-ui/frames/chrsel-073.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "74": {
+      "file": "Assets/classic-ui/frames/chrsel-074.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "75": {
+      "file": "Assets/classic-ui/frames/chrsel-075.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "76": {
+      "file": "Assets/classic-ui/frames/chrsel-076.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "77": {
+      "file": "Assets/classic-ui/frames/chrsel-077.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "78": {
+      "file": "Assets/classic-ui/frames/chrsel-078.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "79": {
+      "file": "Assets/classic-ui/frames/chrsel-079.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "80": {
+      "file": "Assets/classic-ui/frames/chrsel-080.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "81": {
+      "file": "Assets/classic-ui/frames/chrsel-081.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "82": {
+      "file": "Assets/classic-ui/frames/chrsel-082.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "83": {
+      "file": "Assets/classic-ui/frames/chrsel-083.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "84": {
+      "file": "Assets/classic-ui/frames/chrsel-084.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "85": {
+      "file": "Assets/classic-ui/frames/chrsel-085.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "86": {
+      "file": "Assets/classic-ui/frames/chrsel-086.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "87": {
+      "file": "Assets/classic-ui/frames/chrsel-087.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "88": {
+      "file": "Assets/classic-ui/frames/chrsel-088.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "89": {
+      "file": "Assets/classic-ui/frames/chrsel-089.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "90": {
+      "file": "Assets/classic-ui/frames/chrsel-090.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "91": {
+      "file": "Assets/classic-ui/frames/chrsel-091.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "92": {
+      "file": "Assets/classic-ui/frames/chrsel-092.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "93": {
+      "file": "Assets/classic-ui/frames/chrsel-093.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "94": {
+      "file": "Assets/classic-ui/frames/chrsel-094.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "95": {
+      "file": "Assets/classic-ui/frames/chrsel-095.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "96": {
+      "file": "Assets/classic-ui/frames/chrsel-096.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "97": {
+      "file": "Assets/classic-ui/frames/chrsel-097.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "98": {
+      "file": "Assets/classic-ui/frames/chrsel-098.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "99": {
+      "file": "Assets/classic-ui/frames/chrsel-099.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "100": {
+      "file": "Assets/classic-ui/frames/chrsel-100.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "101": {
+      "file": "Assets/classic-ui/frames/chrsel-101.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "102": {
+      "file": "Assets/classic-ui/frames/chrsel-102.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "103": {
+      "file": "Assets/classic-ui/frames/chrsel-103.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "104": {
+      "file": "Assets/classic-ui/frames/chrsel-104.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "105": {
+      "file": "Assets/classic-ui/frames/chrsel-105.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "106": {
+      "file": "Assets/classic-ui/frames/chrsel-106.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "107": {
+      "file": "Assets/classic-ui/frames/chrsel-107.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "108": {
+      "file": "Assets/classic-ui/frames/chrsel-108.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "109": {
+      "file": "Assets/classic-ui/frames/chrsel-109.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "110": {
+      "file": "Assets/classic-ui/frames/chrsel-110.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "111": {
+      "file": "Assets/classic-ui/frames/chrsel-111.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "112": {
+      "file": "Assets/classic-ui/frames/chrsel-112.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "113": {
+      "file": "Assets/classic-ui/frames/chrsel-113.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "114": {
+      "file": "Assets/classic-ui/frames/chrsel-114.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "115": {
+      "file": "Assets/classic-ui/frames/chrsel-115.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "116": {
+      "file": "Assets/classic-ui/frames/chrsel-116.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "117": {
+      "file": "Assets/classic-ui/frames/chrsel-117.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "118": {
+      "file": "Assets/classic-ui/frames/chrsel-118.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "119": {
+      "file": "Assets/classic-ui/frames/chrsel-119.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "120": {
+      "file": "Assets/classic-ui/frames/chrsel-120.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "121": {
+      "file": "Assets/classic-ui/frames/chrsel-121.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "122": {
+      "file": "Assets/classic-ui/frames/chrsel-122.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "123": {
+      "file": "Assets/classic-ui/frames/chrsel-123.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "124": {
+      "file": "Assets/classic-ui/frames/chrsel-124.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "125": {
+      "file": "Assets/classic-ui/frames/chrsel-125.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "126": {
+      "file": "Assets/classic-ui/frames/chrsel-126.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "127": {
+      "file": "Assets/classic-ui/frames/chrsel-127.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "128": {
+      "file": "Assets/classic-ui/frames/chrsel-128.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "129": {
+      "file": "Assets/classic-ui/frames/chrsel-129.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "130": {
+      "file": "Assets/classic-ui/frames/chrsel-130.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "131": {
+      "file": "Assets/classic-ui/frames/chrsel-131.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "132": {
+      "file": "Assets/classic-ui/frames/chrsel-132.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "133": {
+      "file": "Assets/classic-ui/frames/chrsel-133.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "134": {
+      "file": "Assets/classic-ui/frames/chrsel-134.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "135": {
+      "file": "Assets/classic-ui/frames/chrsel-135.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "136": {
+      "file": "Assets/classic-ui/frames/chrsel-136.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "137": {
+      "file": "Assets/classic-ui/frames/chrsel-137.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "138": {
+      "file": "Assets/classic-ui/frames/chrsel-138.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "139": {
+      "file": "Assets/classic-ui/frames/chrsel-139.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "140": {
+      "file": "Assets/classic-ui/frames/chrsel-140.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "141": {
+      "file": "Assets/classic-ui/frames/chrsel-141.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "142": {
+      "file": "Assets/classic-ui/frames/chrsel-142.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "143": {
+      "file": "Assets/classic-ui/frames/chrsel-143.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "144": {
+      "file": "Assets/classic-ui/frames/chrsel-144.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "145": {
+      "file": "Assets/classic-ui/frames/chrsel-145.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "146": {
+      "file": "Assets/classic-ui/frames/chrsel-146.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "147": {
+      "file": "Assets/classic-ui/frames/chrsel-147.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "148": {
+      "file": "Assets/classic-ui/frames/chrsel-148.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "149": {
+      "file": "Assets/classic-ui/frames/chrsel-149.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "150": {
+      "file": "Assets/classic-ui/frames/chrsel-150.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "151": {
+      "file": "Assets/classic-ui/frames/chrsel-151.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "152": {
+      "file": "Assets/classic-ui/frames/chrsel-152.png",
+      "width": 284,
+      "height": 338,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "153": {
+      "file": "Assets/classic-ui/frames/chrsel-153.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "154": {
+      "file": "Assets/classic-ui/frames/chrsel-154.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "155": {
+      "file": "Assets/classic-ui/frames/chrsel-155.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "156": {
+      "file": "Assets/classic-ui/frames/chrsel-156.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "157": {
+      "file": "Assets/classic-ui/frames/chrsel-157.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "158": {
+      "file": "Assets/classic-ui/frames/chrsel-158.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "159": {
+      "file": "Assets/classic-ui/frames/chrsel-159.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "160": {
+      "file": "Assets/classic-ui/frames/chrsel-160.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "161": {
+      "file": "Assets/classic-ui/frames/chrsel-161.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "162": {
+      "file": "Assets/classic-ui/frames/chrsel-162.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "163": {
+      "file": "Assets/classic-ui/frames/chrsel-163.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "164": {
+      "file": "Assets/classic-ui/frames/chrsel-164.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "165": {
+      "file": "Assets/classic-ui/frames/chrsel-165.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "166": {
+      "file": "Assets/classic-ui/frames/chrsel-166.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "167": {
+      "file": "Assets/classic-ui/frames/chrsel-167.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "168": {
+      "file": "Assets/classic-ui/frames/chrsel-168.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "169": {
+      "file": "Assets/classic-ui/frames/chrsel-169.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "170": {
+      "file": "Assets/classic-ui/frames/chrsel-170.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "171": {
+      "file": "Assets/classic-ui/frames/chrsel-171.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "172": {
+      "file": "Assets/classic-ui/frames/chrsel-172.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "173": {
+      "file": "Assets/classic-ui/frames/chrsel-173.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "174": {
+      "file": "Assets/classic-ui/frames/chrsel-174.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "175": {
+      "file": "Assets/classic-ui/frames/chrsel-175.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "176": {
+      "file": "Assets/classic-ui/frames/chrsel-176.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "177": {
+      "file": "Assets/classic-ui/frames/chrsel-177.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "178": {
+      "file": "Assets/classic-ui/frames/chrsel-178.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "179": {
+      "file": "Assets/classic-ui/frames/chrsel-179.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "180": {
+      "file": "Assets/classic-ui/frames/chrsel-180.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "181": {
+      "file": "Assets/classic-ui/frames/chrsel-181.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "182": {
+      "file": "Assets/classic-ui/frames/chrsel-182.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "183": {
+      "file": "Assets/classic-ui/frames/chrsel-183.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "184": {
+      "file": "Assets/classic-ui/frames/chrsel-184.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "185": {
+      "file": "Assets/classic-ui/frames/chrsel-185.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "186": {
+      "file": "Assets/classic-ui/frames/chrsel-186.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "187": {
+      "file": "Assets/classic-ui/frames/chrsel-187.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "188": {
+      "file": "Assets/classic-ui/frames/chrsel-188.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "189": {
+      "file": "Assets/classic-ui/frames/chrsel-189.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "190": {
+      "file": "Assets/classic-ui/frames/chrsel-190.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "191": {
+      "file": "Assets/classic-ui/frames/chrsel-191.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "192": {
+      "file": "Assets/classic-ui/frames/chrsel-192.png",
+      "width": 300,
+      "height": 360,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "193": {
+      "file": "Assets/classic-ui/frames/chrsel-193.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "194": {
+      "file": "Assets/classic-ui/frames/chrsel-194.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "195": {
+      "file": "Assets/classic-ui/frames/chrsel-195.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "196": {
+      "file": "Assets/classic-ui/frames/chrsel-196.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "197": {
+      "file": "Assets/classic-ui/frames/chrsel-197.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "198": {
+      "file": "Assets/classic-ui/frames/chrsel-198.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "199": {
+      "file": "Assets/classic-ui/frames/chrsel-199.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "200": {
+      "file": "Assets/classic-ui/frames/chrsel-200.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "201": {
+      "file": "Assets/classic-ui/frames/chrsel-201.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "202": {
+      "file": "Assets/classic-ui/frames/chrsel-202.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "203": {
+      "file": "Assets/classic-ui/frames/chrsel-203.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "204": {
+      "file": "Assets/classic-ui/frames/chrsel-204.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "205": {
+      "file": "Assets/classic-ui/frames/chrsel-205.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "206": {
+      "file": "Assets/classic-ui/frames/chrsel-206.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "207": {
+      "file": "Assets/classic-ui/frames/chrsel-207.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "208": {
+      "file": "Assets/classic-ui/frames/chrsel-208.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "209": {
+      "file": "Assets/classic-ui/frames/chrsel-209.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "210": {
+      "file": "Assets/classic-ui/frames/chrsel-210.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "211": {
+      "file": "Assets/classic-ui/frames/chrsel-211.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "212": {
+      "file": "Assets/classic-ui/frames/chrsel-212.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "213": {
+      "file": "Assets/classic-ui/frames/chrsel-213.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "214": {
+      "file": "Assets/classic-ui/frames/chrsel-214.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "215": {
+      "file": "Assets/classic-ui/frames/chrsel-215.png",
+      "width": 176,
+      "height": 311,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "216": {
+      "file": "Assets/classic-ui/frames/chrsel-216.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "217": {
+      "file": "Assets/classic-ui/frames/chrsel-217.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "218": {
+      "file": "Assets/classic-ui/frames/chrsel-218.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "219": {
+      "file": "Assets/classic-ui/frames/chrsel-219.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "220": {
+      "file": "Assets/classic-ui/frames/chrsel-220.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "221": {
+      "file": "Assets/classic-ui/frames/chrsel-221.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "222": {
+      "file": "Assets/classic-ui/frames/chrsel-222.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "223": {
+      "file": "Assets/classic-ui/frames/chrsel-223.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "224": {
+      "file": "Assets/classic-ui/frames/chrsel-224.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "225": {
+      "file": "Assets/classic-ui/frames/chrsel-225.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "226": {
+      "file": "Assets/classic-ui/frames/chrsel-226.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "227": {
+      "file": "Assets/classic-ui/frames/chrsel-227.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "228": {
+      "file": "Assets/classic-ui/frames/chrsel-228.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "229": {
+      "file": "Assets/classic-ui/frames/chrsel-229.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "230": {
+      "file": "Assets/classic-ui/frames/chrsel-230.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "231": {
+      "file": "Assets/classic-ui/frames/chrsel-231.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "232": {
+      "file": "Assets/classic-ui/frames/chrsel-232.png",
+      "width": 132,
+      "height": 292,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "233": {
+      "file": "Assets/classic-ui/frames/chrsel-233.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "234": {
+      "file": "Assets/classic-ui/frames/chrsel-234.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "235": {
+      "file": "Assets/classic-ui/frames/chrsel-235.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "236": {
+      "file": "Assets/classic-ui/frames/chrsel-236.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "237": {
+      "file": "Assets/classic-ui/frames/chrsel-237.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "238": {
+      "file": "Assets/classic-ui/frames/chrsel-238.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "239": {
+      "file": "Assets/classic-ui/frames/chrsel-239.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "240": {
+      "file": "Assets/classic-ui/frames/chrsel-240.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "241": {
+      "file": "Assets/classic-ui/frames/chrsel-241.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "242": {
+      "file": "Assets/classic-ui/frames/chrsel-242.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "243": {
+      "file": "Assets/classic-ui/frames/chrsel-243.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "244": {
+      "file": "Assets/classic-ui/frames/chrsel-244.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "245": {
+      "file": "Assets/classic-ui/frames/chrsel-245.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "246": {
+      "file": "Assets/classic-ui/frames/chrsel-246.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "247": {
+      "file": "Assets/classic-ui/frames/chrsel-247.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "248": {
+      "file": "Assets/classic-ui/frames/chrsel-248.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "249": {
+      "file": "Assets/classic-ui/frames/chrsel-249.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "250": {
+      "file": "Assets/classic-ui/frames/chrsel-250.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "251": {
+      "file": "Assets/classic-ui/frames/chrsel-251.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "252": {
+      "file": "Assets/classic-ui/frames/chrsel-252.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "253": {
+      "file": "Assets/classic-ui/frames/chrsel-253.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "254": {
+      "file": "Assets/classic-ui/frames/chrsel-254.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "255": {
+      "file": "Assets/classic-ui/frames/chrsel-255.png",
+      "width": 196,
+      "height": 314,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "256": {
+      "file": "Assets/classic-ui/frames/chrsel-256.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "257": {
+      "file": "Assets/classic-ui/frames/chrsel-257.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "258": {
+      "file": "Assets/classic-ui/frames/chrsel-258.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "259": {
+      "file": "Assets/classic-ui/frames/chrsel-259.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "260": {
+      "file": "Assets/classic-ui/frames/chrsel-260.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "261": {
+      "file": "Assets/classic-ui/frames/chrsel-261.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "262": {
+      "file": "Assets/classic-ui/frames/chrsel-262.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "263": {
+      "file": "Assets/classic-ui/frames/chrsel-263.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "264": {
+      "file": "Assets/classic-ui/frames/chrsel-264.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "265": {
+      "file": "Assets/classic-ui/frames/chrsel-265.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "266": {
+      "file": "Assets/classic-ui/frames/chrsel-266.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "267": {
+      "file": "Assets/classic-ui/frames/chrsel-267.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "268": {
+      "file": "Assets/classic-ui/frames/chrsel-268.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "269": {
+      "file": "Assets/classic-ui/frames/chrsel-269.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "270": {
+      "file": "Assets/classic-ui/frames/chrsel-270.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "271": {
+      "file": "Assets/classic-ui/frames/chrsel-271.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "272": {
+      "file": "Assets/classic-ui/frames/chrsel-272.png",
+      "width": 156,
+      "height": 288,
+      "offsetX": 7,
+      "offsetY": -44
+    },
+    "273": {
+      "file": "Assets/classic-ui/frames/chrsel-273.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "274": {
+      "file": "Assets/classic-ui/frames/chrsel-274.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "275": {
+      "file": "Assets/classic-ui/frames/chrsel-275.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "276": {
+      "file": "Assets/classic-ui/frames/chrsel-276.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "277": {
+      "file": "Assets/classic-ui/frames/chrsel-277.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "278": {
+      "file": "Assets/classic-ui/frames/chrsel-278.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "279": {
+      "file": "Assets/classic-ui/frames/chrsel-279.png",
+      "width": 4,
+      "height": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  },
+  "missing": []
+}

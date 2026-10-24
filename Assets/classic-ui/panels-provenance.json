@@ -1,0 +1,30 @@
+{
+  "bag": {
+    "offsetX": 7,
+    "offsetY": -44,
+    "width": 336,
+    "height": 270,
+    "index": 3
+  },
+  "equipment": {
+    "offsetX": 7,
+    "offsetY": -44,
+    "width": 232,
+    "height": 325,
+    "index": 370
+  },
+  "body-male": {
+    "offsetX": 7,
+    "offsetY": -44,
+    "width": 168,
+    "height": 199,
+    "index": 376
+  },
+  "body-female": {
+    "offsetX": 7,
+    "offsetY": -44,
+    "width": 168,
+    "height": 199,
+    "index": 377
+  }
+}

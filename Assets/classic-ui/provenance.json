@@ -1,0 +1,66 @@
+[
+  {
+    "name": "login",
+    "library": "chrsel",
+    "index": 22,
+    "width": 800,
+    "height": 600,
+    "status": "exported"
+  },
+  {
+    "name": "characters",
+    "library": "Prguse",
+    "index": 65,
+    "width": 800,
+    "height": 600,
+    "status": "exported"
+  },
+  {
+    "name": "portrait-0-0",
+    "library": "chrsel",
+    "index": 40,
+    "width": 300,
+    "height": 360,
+    "status": "exported"
+  },
+  {
+    "name": "portrait-1-0",
+    "library": "chrsel",
+    "index": 80,
+    "width": 300,
+    "height": 360,
+    "status": "exported"
+  },
+  {
+    "name": "portrait-2-0",
+    "library": "mir14full/Data/ChrSel.wil",
+    "index": 120,
+    "width": 284,
+    "height": 338,
+    "status": "legacy_exported"
+  },
+  {
+    "name": "portrait-0-1",
+    "library": "mir14full/Data/ChrSel.wil",
+    "index": 160,
+    "width": 300,
+    "height": 360,
+    "status": "legacy_exported"
+  },
+  {
+    "name": "portrait-1-1",
+    "library": "mir14full/Data/ChrSel.wil",
+    "index": 200,
+    "width": 176,
+    "height": 311,
+    "status": "legacy_exported"
+  },
+  {
+    "name": "portrait-2-1",
+    "library": "mir14full/Data/ChrSel.wil",
+    "index": 240,
+    "width": 196,
+    "height": 314,
+    "status": "legacy_exported"
+  }
+]
